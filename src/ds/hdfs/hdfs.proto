@@ -1,0 +1,36 @@
+package hdfs;
+
+option java_package = "ds.hdfs";
+option java_outer_classname = "hdfsProto";
+
+//Client sends queries to Name Node
+message ClientQuery{
+	required string type = 0; //can be read or write
+	optional string filename = 1; //contains the filename requested, omitted if command is ls
+}
+
+/*
+	Flow is as follows:
+	Client --Query--> NameNode --Response--> Client --Requests--> DNs
+	DNs --Data--> Client
+*/
+
+//Response to client requests for file
+message NameNodeResponse{
+	required string response = 0; //Contains Data Node locations
+}
+
+//Response to client request for file data
+message DataNodeResponse{
+	required bytes response = 0; //Contains actual data
+}
+
+//Tracks previous states of the log
+message LogEntry{
+	required  
+}
+
+//Used to maintain persistence
+message NameNodeData{
+	repeated LogEntry log = 0; 
+}
