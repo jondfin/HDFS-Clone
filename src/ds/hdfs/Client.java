@@ -8,7 +8,9 @@ import java.rmi.registry.Registry;
 import java.rmi.RemoteException;
 import java.util.*;
 import java.io.*;
-import com.google.protobuf.ByteString; 
+import com.google.protobuf.ByteString;
+
+import ds.hdfs.hdfsProto.ClientQuery; 
 //import ds.hdfs.INameNode;
 
 public class Client
@@ -29,6 +31,17 @@ public class Client
 				System.out.println("Retrieved Name Node stub");
 			}
 			br.close();
+			
+			//Read the dn_config to get info
+			br = new BufferedReader(new FileReader("src/dn_config.txt"));
+			line = br.readLine();
+			while( (line = br.readLine()) != null) {
+				String parsedLine[] = line.split(";");
+				DNStub = GetDNStub(parsedLine[0], parsedLine[1], Integer.parseInt(parsedLine[2]));
+				System.out.println("Retrieved Data Node stub");
+			}
+			br.close();
+			
 		}catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -63,16 +76,37 @@ public class Client
         }
     }
 
+    /**
+     * Write to HDFS from local
+     * @param Name of file to be sent to HDFS
+     */
     public void PutFile(String Filename) //Put File
     {
-        System.out.println("Going to put file" + Filename);
-        BufferedInputStream bis;
-        try{
-            bis = new BufferedInputStream(new FileInputStream(File));
-        }catch(Exception e){
-            System.out.println("File not found !!!");
-            return;
-        }
+	        System.out.println("Going to put file" + Filename);
+	        BufferedInputStream bis;
+	    	
+	        try{
+	        	//Read bytes from file
+	            bis = new BufferedInputStream(new FileInputStream(new File(Filename)));
+	        }catch(Exception e){
+	            System.out.println("File not found !!!");
+	            return;
+	        }
+	        
+	        //Create protobuf message
+	    	ClientQuery.Builder cq = ClientQuery.newBuilder();
+	    	cq.setType("w");
+	    	cq.setFilename(Filename);
+            
+            //Query NameNode
+            
+            //Receive NameNode response
+	        
+	        try {
+	        	bis.close();
+	        }catch(Exception e) {
+	        	System.out.println("Error closing inputstream");
+	        }
     }
 
     public void GetFile(String Filename)
@@ -80,7 +114,7 @@ public class Client
 	    System.out.println("Going to get file" + Filename);
 	    BufferedInputStream bis;
 	    try{
-	        bis = new BufferedInputStream(new FileInputStream(File));
+//	        bis = new BufferedInputStream(new FileInputStream(File));
 	    }catch(Exception e){
 	        System.out.println("File not found !!!");
 	        return;

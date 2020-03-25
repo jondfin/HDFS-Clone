@@ -153,6 +153,7 @@ public class DataNode implements IDataNode
         	String parsedLine[] = line.split(";");
         	DataNodes.add(new DataNode(Integer.parseInt(parsedLine[0]), parsedLine[1], Integer.parseInt(parsedLine[2])));
         }
+        br.close();
         
 		//Bind to data nodes to server
         for(DataNode dn : DataNodes) {

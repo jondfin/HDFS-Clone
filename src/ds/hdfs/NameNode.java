@@ -28,13 +28,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.google.protobuf.InvalidProtocolBufferException;
+import ds.hdfs.hdfsProto.NameNodeData;
+import ds.hdfs.hdfsProto.NameNodeResponse;
+
 import com.google.protobuf.*;
 
 public class NameNode implements INameNode{
 
+	private static ArrayList<String> fileMD;
+	
 	protected Registry serverRegistry;
-	private List<DataNode> DataNodes;
 	
 	String ip;
 	int port;
@@ -79,6 +82,7 @@ public class NameNode implements INameNode{
 	
 	boolean findInFilelist(int fhandle)
 	{
+		return false;
 	}
 	
 	public void printFilelist()
@@ -116,6 +120,15 @@ public class NameNode implements INameNode{
 	
 	public byte[] getBlockLocations(byte[] inp ) throws RemoteException
 	{
+		NameNodeResponse.Builder response = NameNodeResponse.newBuilder();
+		
+		//Check if file exists
+		if(findInFilelist() == false) {
+			System.out.println("File does no exist!");
+			response.setStatus(-1);
+			return response.build().toByteArray();
+		}
+		
 		try
 		{
 		}
@@ -199,6 +212,23 @@ public class NameNode implements INameNode{
 			System.out.println("Created Name Node: \n\t" + parsedLine[0] + ": " + parsedLine[1] + " Port = " + Integer.parseInt(parsedLine[2]));
 		}
 		br.close();
+		
+		//Initialize meta-data
+		NameNodeData md;
+		try{
+			//Read from file
+			md = NameNodeData.parseFrom(new FileInputStream(new File("src/NNMD.txt")));
+		}catch(Exception e) {
+			System.out.println("Name Node meta-data file does not exist");
+			File f = new File("src/NNMD.txt");
+			f.createNewFile(); //create new file if not found
+			md = NameNodeData.parseFrom(new FileInputStream(new File("src/NNMD.txt")));
+			System.out.println("Created meta-data file");
+		}
+		
+		for(String nnd : md.getDataList()) {
+			fileMD.add(nnd);
+		}
 		
 		//Enable service
 		System.setProperty("java.rmi.server.hostname" , "NameNode");
