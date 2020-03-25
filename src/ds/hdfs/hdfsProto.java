@@ -20,36 +20,10 @@ public final class hdfsProto {
 
     /**
      * <pre>
-     *can be read or write
-     * </pre>
-     *
-     * <code>required string type = 1;</code>
-     */
-    boolean hasType();
-    /**
-     * <pre>
-     *can be read or write
-     * </pre>
-     *
-     * <code>required string type = 1;</code>
-     */
-    java.lang.String getType();
-    /**
-     * <pre>
-     *can be read or write
-     * </pre>
-     *
-     * <code>required string type = 1;</code>
-     */
-    com.google.protobuf.ByteString
-        getTypeBytes();
-
-    /**
-     * <pre>
      *contains the filename requested, omitted if command is ls
      * </pre>
      *
-     * <code>optional string filename = 2;</code>
+     * <code>optional string filename = 1;</code>
      */
     boolean hasFilename();
     /**
@@ -57,7 +31,7 @@ public final class hdfsProto {
      *contains the filename requested, omitted if command is ls
      * </pre>
      *
-     * <code>optional string filename = 2;</code>
+     * <code>optional string filename = 1;</code>
      */
     java.lang.String getFilename();
     /**
@@ -65,7 +39,7 @@ public final class hdfsProto {
      *contains the filename requested, omitted if command is ls
      * </pre>
      *
-     * <code>optional string filename = 2;</code>
+     * <code>optional string filename = 1;</code>
      */
     com.google.protobuf.ByteString
         getFilenameBytes();
@@ -86,7 +60,6 @@ public final class hdfsProto {
       super(builder);
     }
     private ClientQuery() {
-      type_ = "";
       filename_ = "";
     }
 
@@ -121,12 +94,6 @@ public final class hdfsProto {
             case 10: {
               com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000001;
-              type_ = bs;
-              break;
-            }
-            case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000002;
               filename_ = bs;
               break;
             }
@@ -155,78 +122,24 @@ public final class hdfsProto {
     }
 
     private int bitField0_;
-    public static final int TYPE_FIELD_NUMBER = 1;
-    private volatile java.lang.Object type_;
-    /**
-     * <pre>
-     *can be read or write
-     * </pre>
-     *
-     * <code>required string type = 1;</code>
-     */
-    public boolean hasType() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
-    }
-    /**
-     * <pre>
-     *can be read or write
-     * </pre>
-     *
-     * <code>required string type = 1;</code>
-     */
-    public java.lang.String getType() {
-      java.lang.Object ref = type_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          type_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <pre>
-     *can be read or write
-     * </pre>
-     *
-     * <code>required string type = 1;</code>
-     */
-    public com.google.protobuf.ByteString
-        getTypeBytes() {
-      java.lang.Object ref = type_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        type_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-
-    public static final int FILENAME_FIELD_NUMBER = 2;
+    public static final int FILENAME_FIELD_NUMBER = 1;
     private volatile java.lang.Object filename_;
     /**
      * <pre>
      *contains the filename requested, omitted if command is ls
      * </pre>
      *
-     * <code>optional string filename = 2;</code>
+     * <code>optional string filename = 1;</code>
      */
     public boolean hasFilename() {
-      return ((bitField0_ & 0x00000002) == 0x00000002);
+      return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
      * <pre>
      *contains the filename requested, omitted if command is ls
      * </pre>
      *
-     * <code>optional string filename = 2;</code>
+     * <code>optional string filename = 1;</code>
      */
     public java.lang.String getFilename() {
       java.lang.Object ref = filename_;
@@ -247,7 +160,7 @@ public final class hdfsProto {
      *contains the filename requested, omitted if command is ls
      * </pre>
      *
-     * <code>optional string filename = 2;</code>
+     * <code>optional string filename = 1;</code>
      */
     public com.google.protobuf.ByteString
         getFilenameBytes() {
@@ -269,10 +182,6 @@ public final class hdfsProto {
       if (isInitialized == 1) return true;
       if (isInitialized == 0) return false;
 
-      if (!hasType()) {
-        memoizedIsInitialized = 0;
-        return false;
-      }
       memoizedIsInitialized = 1;
       return true;
     }
@@ -280,10 +189,7 @@ public final class hdfsProto {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, type_);
-      }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, filename_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, filename_);
       }
       unknownFields.writeTo(output);
     }
@@ -294,10 +200,7 @@ public final class hdfsProto {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, type_);
-      }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, filename_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, filename_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -316,11 +219,6 @@ public final class hdfsProto {
       ds.hdfs.hdfsProto.ClientQuery other = (ds.hdfs.hdfsProto.ClientQuery) obj;
 
       boolean result = true;
-      result = result && (hasType() == other.hasType());
-      if (hasType()) {
-        result = result && getType()
-            .equals(other.getType());
-      }
       result = result && (hasFilename() == other.hasFilename());
       if (hasFilename()) {
         result = result && getFilename()
@@ -337,10 +235,6 @@ public final class hdfsProto {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptorForType().hashCode();
-      if (hasType()) {
-        hash = (37 * hash) + TYPE_FIELD_NUMBER;
-        hash = (53 * hash) + getType().hashCode();
-      }
       if (hasFilename()) {
         hash = (37 * hash) + FILENAME_FIELD_NUMBER;
         hash = (53 * hash) + getFilename().hashCode();
@@ -467,10 +361,8 @@ public final class hdfsProto {
       }
       public Builder clear() {
         super.clear();
-        type_ = "";
-        bitField0_ = (bitField0_ & ~0x00000001);
         filename_ = "";
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000001);
         return this;
       }
 
@@ -497,10 +389,6 @@ public final class hdfsProto {
         int to_bitField0_ = 0;
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
           to_bitField0_ |= 0x00000001;
-        }
-        result.type_ = type_;
-        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-          to_bitField0_ |= 0x00000002;
         }
         result.filename_ = filename_;
         result.bitField0_ = to_bitField0_;
@@ -545,13 +433,8 @@ public final class hdfsProto {
 
       public Builder mergeFrom(ds.hdfs.hdfsProto.ClientQuery other) {
         if (other == ds.hdfs.hdfsProto.ClientQuery.getDefaultInstance()) return this;
-        if (other.hasType()) {
-          bitField0_ |= 0x00000001;
-          type_ = other.type_;
-          onChanged();
-        }
         if (other.hasFilename()) {
-          bitField0_ |= 0x00000002;
+          bitField0_ |= 0x00000001;
           filename_ = other.filename_;
           onChanged();
         }
@@ -561,9 +444,6 @@ public final class hdfsProto {
       }
 
       public final boolean isInitialized() {
-        if (!hasType()) {
-          return false;
-        }
         return true;
       }
 
@@ -586,123 +466,23 @@ public final class hdfsProto {
       }
       private int bitField0_;
 
-      private java.lang.Object type_ = "";
-      /**
-       * <pre>
-       *can be read or write
-       * </pre>
-       *
-       * <code>required string type = 1;</code>
-       */
-      public boolean hasType() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
-      }
-      /**
-       * <pre>
-       *can be read or write
-       * </pre>
-       *
-       * <code>required string type = 1;</code>
-       */
-      public java.lang.String getType() {
-        java.lang.Object ref = type_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            type_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
-      }
-      /**
-       * <pre>
-       *can be read or write
-       * </pre>
-       *
-       * <code>required string type = 1;</code>
-       */
-      public com.google.protobuf.ByteString
-          getTypeBytes() {
-        java.lang.Object ref = type_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          type_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <pre>
-       *can be read or write
-       * </pre>
-       *
-       * <code>required string type = 1;</code>
-       */
-      public Builder setType(
-          java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000001;
-        type_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <pre>
-       *can be read or write
-       * </pre>
-       *
-       * <code>required string type = 1;</code>
-       */
-      public Builder clearType() {
-        bitField0_ = (bitField0_ & ~0x00000001);
-        type_ = getDefaultInstance().getType();
-        onChanged();
-        return this;
-      }
-      /**
-       * <pre>
-       *can be read or write
-       * </pre>
-       *
-       * <code>required string type = 1;</code>
-       */
-      public Builder setTypeBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000001;
-        type_ = value;
-        onChanged();
-        return this;
-      }
-
       private java.lang.Object filename_ = "";
       /**
        * <pre>
        *contains the filename requested, omitted if command is ls
        * </pre>
        *
-       * <code>optional string filename = 2;</code>
+       * <code>optional string filename = 1;</code>
        */
       public boolean hasFilename() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
+        return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
        * <pre>
        *contains the filename requested, omitted if command is ls
        * </pre>
        *
-       * <code>optional string filename = 2;</code>
+       * <code>optional string filename = 1;</code>
        */
       public java.lang.String getFilename() {
         java.lang.Object ref = filename_;
@@ -723,7 +503,7 @@ public final class hdfsProto {
        *contains the filename requested, omitted if command is ls
        * </pre>
        *
-       * <code>optional string filename = 2;</code>
+       * <code>optional string filename = 1;</code>
        */
       public com.google.protobuf.ByteString
           getFilenameBytes() {
@@ -743,14 +523,14 @@ public final class hdfsProto {
        *contains the filename requested, omitted if command is ls
        * </pre>
        *
-       * <code>optional string filename = 2;</code>
+       * <code>optional string filename = 1;</code>
        */
       public Builder setFilename(
           java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000001;
         filename_ = value;
         onChanged();
         return this;
@@ -760,10 +540,10 @@ public final class hdfsProto {
        *contains the filename requested, omitted if command is ls
        * </pre>
        *
-       * <code>optional string filename = 2;</code>
+       * <code>optional string filename = 1;</code>
        */
       public Builder clearFilename() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000001);
         filename_ = getDefaultInstance().getFilename();
         onChanged();
         return this;
@@ -773,14 +553,14 @@ public final class hdfsProto {
        *contains the filename requested, omitted if command is ls
        * </pre>
        *
-       * <code>optional string filename = 2;</code>
+       * <code>optional string filename = 1;</code>
        */
       public Builder setFilenameBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000001;
         filename_ = value;
         onChanged();
         return this;
@@ -854,6 +634,23 @@ public final class hdfsProto {
      * <code>required bytes response = 1;</code>
      */
     com.google.protobuf.ByteString getResponse();
+
+    /**
+     * <pre>
+     *-1 for error otherwise good
+     * </pre>
+     *
+     * <code>required int32 status = 2;</code>
+     */
+    boolean hasStatus();
+    /**
+     * <pre>
+     *-1 for error otherwise good
+     * </pre>
+     *
+     * <code>required int32 status = 2;</code>
+     */
+    int getStatus();
   }
   /**
    * <pre>
@@ -872,6 +669,7 @@ public final class hdfsProto {
     }
     private NameNodeResponse() {
       response_ = com.google.protobuf.ByteString.EMPTY;
+      status_ = 0;
     }
 
     @java.lang.Override
@@ -905,6 +703,11 @@ public final class hdfsProto {
             case 10: {
               bitField0_ |= 0x00000001;
               response_ = input.readBytes();
+              break;
+            }
+            case 16: {
+              bitField0_ |= 0x00000002;
+              status_ = input.readInt32();
               break;
             }
           }
@@ -955,6 +758,29 @@ public final class hdfsProto {
       return response_;
     }
 
+    public static final int STATUS_FIELD_NUMBER = 2;
+    private int status_;
+    /**
+     * <pre>
+     *-1 for error otherwise good
+     * </pre>
+     *
+     * <code>required int32 status = 2;</code>
+     */
+    public boolean hasStatus() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <pre>
+     *-1 for error otherwise good
+     * </pre>
+     *
+     * <code>required int32 status = 2;</code>
+     */
+    public int getStatus() {
+      return status_;
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -962,6 +788,10 @@ public final class hdfsProto {
       if (isInitialized == 0) return false;
 
       if (!hasResponse()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStatus()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -974,6 +804,9 @@ public final class hdfsProto {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeBytes(1, response_);
       }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeInt32(2, status_);
+      }
       unknownFields.writeTo(output);
     }
 
@@ -985,6 +818,10 @@ public final class hdfsProto {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(1, response_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(2, status_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -1008,6 +845,11 @@ public final class hdfsProto {
         result = result && getResponse()
             .equals(other.getResponse());
       }
+      result = result && (hasStatus() == other.hasStatus());
+      if (hasStatus()) {
+        result = result && (getStatus()
+            == other.getStatus());
+      }
       result = result && unknownFields.equals(other.unknownFields);
       return result;
     }
@@ -1022,6 +864,10 @@ public final class hdfsProto {
       if (hasResponse()) {
         hash = (37 * hash) + RESPONSE_FIELD_NUMBER;
         hash = (53 * hash) + getResponse().hashCode();
+      }
+      if (hasStatus()) {
+        hash = (37 * hash) + STATUS_FIELD_NUMBER;
+        hash = (53 * hash) + getStatus();
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -1147,6 +993,8 @@ public final class hdfsProto {
         super.clear();
         response_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000001);
+        status_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
 
@@ -1175,6 +1023,10 @@ public final class hdfsProto {
           to_bitField0_ |= 0x00000001;
         }
         result.response_ = response_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.status_ = status_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -1220,6 +1072,9 @@ public final class hdfsProto {
         if (other.hasResponse()) {
           setResponse(other.getResponse());
         }
+        if (other.hasStatus()) {
+          setStatus(other.getStatus());
+        }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
         return this;
@@ -1227,6 +1082,9 @@ public final class hdfsProto {
 
       public final boolean isInitialized() {
         if (!hasResponse()) {
+          return false;
+        }
+        if (!hasStatus()) {
           return false;
         }
         return true;
@@ -1301,6 +1159,54 @@ public final class hdfsProto {
         onChanged();
         return this;
       }
+
+      private int status_ ;
+      /**
+       * <pre>
+       *-1 for error otherwise good
+       * </pre>
+       *
+       * <code>required int32 status = 2;</code>
+       */
+      public boolean hasStatus() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <pre>
+       *-1 for error otherwise good
+       * </pre>
+       *
+       * <code>required int32 status = 2;</code>
+       */
+      public int getStatus() {
+        return status_;
+      }
+      /**
+       * <pre>
+       *-1 for error otherwise good
+       * </pre>
+       *
+       * <code>required int32 status = 2;</code>
+       */
+      public Builder setStatus(int value) {
+        bitField0_ |= 0x00000002;
+        status_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       *-1 for error otherwise good
+       * </pre>
+       *
+       * <code>required int32 status = 2;</code>
+       */
+      public Builder clearStatus() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        status_ = 0;
+        onChanged();
+        return this;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.setUnknownFields(unknownFields);
@@ -1370,6 +1276,23 @@ public final class hdfsProto {
      * <code>required bytes response = 1;</code>
      */
     com.google.protobuf.ByteString getResponse();
+
+    /**
+     * <pre>
+     *-1 for error otherwise good
+     * </pre>
+     *
+     * <code>required int32 status = 2;</code>
+     */
+    boolean hasStatus();
+    /**
+     * <pre>
+     *-1 for error otherwise good
+     * </pre>
+     *
+     * <code>required int32 status = 2;</code>
+     */
+    int getStatus();
   }
   /**
    * <pre>
@@ -1388,6 +1311,7 @@ public final class hdfsProto {
     }
     private DataNodeResponse() {
       response_ = com.google.protobuf.ByteString.EMPTY;
+      status_ = 0;
     }
 
     @java.lang.Override
@@ -1421,6 +1345,11 @@ public final class hdfsProto {
             case 10: {
               bitField0_ |= 0x00000001;
               response_ = input.readBytes();
+              break;
+            }
+            case 16: {
+              bitField0_ |= 0x00000002;
+              status_ = input.readInt32();
               break;
             }
           }
@@ -1471,6 +1400,29 @@ public final class hdfsProto {
       return response_;
     }
 
+    public static final int STATUS_FIELD_NUMBER = 2;
+    private int status_;
+    /**
+     * <pre>
+     *-1 for error otherwise good
+     * </pre>
+     *
+     * <code>required int32 status = 2;</code>
+     */
+    public boolean hasStatus() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <pre>
+     *-1 for error otherwise good
+     * </pre>
+     *
+     * <code>required int32 status = 2;</code>
+     */
+    public int getStatus() {
+      return status_;
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -1478,6 +1430,10 @@ public final class hdfsProto {
       if (isInitialized == 0) return false;
 
       if (!hasResponse()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStatus()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -1490,6 +1446,9 @@ public final class hdfsProto {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeBytes(1, response_);
       }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeInt32(2, status_);
+      }
       unknownFields.writeTo(output);
     }
 
@@ -1501,6 +1460,10 @@ public final class hdfsProto {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(1, response_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(2, status_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -1524,6 +1487,11 @@ public final class hdfsProto {
         result = result && getResponse()
             .equals(other.getResponse());
       }
+      result = result && (hasStatus() == other.hasStatus());
+      if (hasStatus()) {
+        result = result && (getStatus()
+            == other.getStatus());
+      }
       result = result && unknownFields.equals(other.unknownFields);
       return result;
     }
@@ -1538,6 +1506,10 @@ public final class hdfsProto {
       if (hasResponse()) {
         hash = (37 * hash) + RESPONSE_FIELD_NUMBER;
         hash = (53 * hash) + getResponse().hashCode();
+      }
+      if (hasStatus()) {
+        hash = (37 * hash) + STATUS_FIELD_NUMBER;
+        hash = (53 * hash) + getStatus();
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -1663,6 +1635,8 @@ public final class hdfsProto {
         super.clear();
         response_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000001);
+        status_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
 
@@ -1691,6 +1665,10 @@ public final class hdfsProto {
           to_bitField0_ |= 0x00000001;
         }
         result.response_ = response_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.status_ = status_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -1736,6 +1714,9 @@ public final class hdfsProto {
         if (other.hasResponse()) {
           setResponse(other.getResponse());
         }
+        if (other.hasStatus()) {
+          setStatus(other.getStatus());
+        }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
         return this;
@@ -1743,6 +1724,9 @@ public final class hdfsProto {
 
       public final boolean isInitialized() {
         if (!hasResponse()) {
+          return false;
+        }
+        if (!hasStatus()) {
           return false;
         }
         return true;
@@ -1814,6 +1798,54 @@ public final class hdfsProto {
       public Builder clearResponse() {
         bitField0_ = (bitField0_ & ~0x00000001);
         response_ = getDefaultInstance().getResponse();
+        onChanged();
+        return this;
+      }
+
+      private int status_ ;
+      /**
+       * <pre>
+       *-1 for error otherwise good
+       * </pre>
+       *
+       * <code>required int32 status = 2;</code>
+       */
+      public boolean hasStatus() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <pre>
+       *-1 for error otherwise good
+       * </pre>
+       *
+       * <code>required int32 status = 2;</code>
+       */
+      public int getStatus() {
+        return status_;
+      }
+      /**
+       * <pre>
+       *-1 for error otherwise good
+       * </pre>
+       *
+       * <code>required int32 status = 2;</code>
+       */
+      public Builder setStatus(int value) {
+        bitField0_ |= 0x00000002;
+        status_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       *-1 for error otherwise good
+       * </pre>
+       *
+       * <code>required int32 status = 2;</code>
+       */
+      public Builder clearStatus() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        status_ = 0;
         onChanged();
         return this;
       }
@@ -2976,12 +3008,13 @@ public final class hdfsProto {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\nhdfs.proto\022\004hdfs\"-\n\013ClientQuery\022\014\n\004typ" +
-      "e\030\001 \002(\t\022\020\n\010filename\030\002 \001(\t\"$\n\020NameNodeRes" +
-      "ponse\022\020\n\010response\030\001 \002(\014\"$\n\020DataNodeRespo" +
-      "nse\022\020\n\010response\030\001 \002(\014\"\034\n\014NameNodeData\022\014\n" +
-      "\004data\030\001 \003(\014\"\034\n\014DataNodeData\022\014\n\004data\030\001 \003(" +
-      "\014B\024\n\007ds.hdfsB\thdfsProto"
+      "\n\nhdfs.proto\022\004hdfs\"\037\n\013ClientQuery\022\020\n\010fil" +
+      "ename\030\001 \001(\t\"4\n\020NameNodeResponse\022\020\n\010respo" +
+      "nse\030\001 \002(\014\022\016\n\006status\030\002 \002(\005\"4\n\020DataNodeRes" +
+      "ponse\022\020\n\010response\030\001 \002(\014\022\016\n\006status\030\002 \002(\005\"" +
+      "\034\n\014NameNodeData\022\014\n\004data\030\001 \003(\014\"\034\n\014DataNod" +
+      "eData\022\014\n\004data\030\001 \003(\014B\024\n\007ds.hdfsB\thdfsProt" +
+      "o"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -3000,19 +3033,19 @@ public final class hdfsProto {
     internal_static_hdfs_ClientQuery_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_hdfs_ClientQuery_descriptor,
-        new java.lang.String[] { "Type", "Filename", });
+        new java.lang.String[] { "Filename", });
     internal_static_hdfs_NameNodeResponse_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_hdfs_NameNodeResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_hdfs_NameNodeResponse_descriptor,
-        new java.lang.String[] { "Response", });
+        new java.lang.String[] { "Response", "Status", });
     internal_static_hdfs_DataNodeResponse_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_hdfs_DataNodeResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_hdfs_DataNodeResponse_descriptor,
-        new java.lang.String[] { "Response", });
+        new java.lang.String[] { "Response", "Status", });
     internal_static_hdfs_NameNodeData_descriptor =
       getDescriptor().getMessageTypes().get(3);
     internal_static_hdfs_NameNodeData_fieldAccessorTable = new
