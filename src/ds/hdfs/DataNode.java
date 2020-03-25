@@ -18,7 +18,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import java.io.*;
 import java.nio.charset.Charset;
 
-import ds.hdfs.hdfsformat.*;
 import ds.hdfs.IDataNode.*;
 
 public class DataNode implements IDataNode
@@ -27,12 +26,15 @@ public class DataNode implements IDataNode
     protected INameNode NNStub;
     protected String MyIP;
     protected int MyPort;
-    protected String MyName;
+//    protected String MyName;
     protected int MyID;
 
-    public DataNode()
+    public DataNode(int id, String ip, int port)
     {
-        //Constructor
+    	this.MyID = id;
+    	this.MyIP = ip;
+    	this.MyPort = port;
+    	this.MyChunksFile = this.MyIP + "_chunks.txt";
     }
 
     public static void appendtoFile(String Filename, String Line)
@@ -120,10 +122,52 @@ public class DataNode implements IDataNode
         }
     }
 
-    public static void main(String args[]) throws InvalidProtocolBufferException, IOException
+    public static void main(String args[]) throws InvalidProtocolBufferException, IOException, InterruptedException
     {
-        //Define a Datanode Me
-        DataNode Me = new DataNode();        
+        //Set up name node
+        NameNode nn = null;
+		BufferedReader br = new BufferedReader(new FileReader("src/nn_config.txt"));
+		String line = br.readLine();
+		while( (line = br.readLine()) != null) {
+			String parsedLine[] = line.split(";");
+			//Create new name node
+			nn = new NameNode(parsedLine[1], Integer.parseInt(parsedLine[2]), parsedLine[0]);
+			System.out.println("Found Name Node: \n\t" + parsedLine[0] + ": " + parsedLine[1] + " Port = " + Integer.parseInt(parsedLine[2]));
+		}
+		br.close();
+		
+		//Enable services
+//		System.setProperty("java.rmi.server.hostname" , "localhost");
+		System.setProperty("java.security.policy","src/permission.policy");
 
+        if (System.getSecurityManager() == null) {
+            System.setSecurityManager(new SecurityManager());
+        }
+        
+        ArrayList<DataNode> DataNodes = new ArrayList<>();
+        
+        //Set up data nodes
+        br = new BufferedReader(new FileReader("src/dn_config.txt"));
+        line = br.readLine();
+        while( (line = br.readLine()) != null) {
+        	String parsedLine[] = line.split(";");
+        	DataNodes.add(new DataNode(Integer.parseInt(parsedLine[0]), parsedLine[1], Integer.parseInt(parsedLine[2])));
+        }
+        
+		//Bind to data nodes to server
+        for(DataNode dn : DataNodes) {
+        	boolean found = false;
+        	while(!found){
+				try{
+					dn.BindServer(nn.name, nn.ip, nn.port);
+					System.out.println("Bound DataNode: " + dn.MyID + " with address " + dn.MyIP + ":" + dn.MyPort);
+					found = true;
+				}catch(Exception e) {
+					System.err.println("Couldn't connect to rmiregistry");
+					TimeUnit.SECONDS.sleep(1);
+				}
+        	}
+        }
+        
     }
 }

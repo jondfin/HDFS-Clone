@@ -8,7 +8,6 @@ import java.rmi.registry.Registry;
 import java.rmi.RemoteException;
 import java.util.*;
 import java.io.*;
-import ds.hdfs.hdfsformat.*;
 import com.google.protobuf.ByteString; 
 //import ds.hdfs.INameNode;
 
@@ -19,8 +18,20 @@ public class Client
     public IDataNode DNStub; //Data Node stub
     public Client()
     {
-        //Get the Name Node Stub
-        //nn_details contain NN details in the format Server;IP;Port
+		try {
+			//Read the nn_config to get info
+			BufferedReader br = new BufferedReader(new FileReader("src/nn_config.txt"));
+			String line = br.readLine();
+			while( (line = br.readLine()) != null) {
+				String parsedLine[] = line.split(";");
+				//Create new name node
+				NNStub = GetNNStub(parsedLine[0], parsedLine[1], Integer.parseInt(parsedLine[2]));
+				System.out.println("Retrieved Name Node stub");
+			}
+			br.close();
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
     }
 
     public IDataNode GetDNStub(String Name, String IP, int Port)
@@ -64,12 +75,21 @@ public class Client
         }
     }
 
-    public void GetFile(String FileName)
+    public void GetFile(String Filename)
     {
+	    System.out.println("Going to get file" + Filename);
+	    BufferedInputStream bis;
+	    try{
+	        bis = new BufferedInputStream(new FileInputStream(File));
+	    }catch(Exception e){
+	        System.out.println("File not found !!!");
+	        return;
+	    }
     }
 
     public void List()
     {
+    	System.out.println("Getting file list");
     }
 
     public static void main(String[] args) throws RemoteException, UnknownHostException

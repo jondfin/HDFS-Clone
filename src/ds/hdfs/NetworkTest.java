@@ -58,14 +58,12 @@ public class NetworkTest implements temporaryInterface{
 			
 			System.out.println("Connected to other guy");
 			found = true;
-			
 		} catch (Exception e) {
 						
 			TimeUnit.SECONDS.sleep(1);
 			System.out.println("Still searching");
 			e.printStackTrace();
 		}
-		
 	}
 
 }
