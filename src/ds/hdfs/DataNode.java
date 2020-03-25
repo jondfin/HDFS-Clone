@@ -19,6 +19,8 @@ import java.io.*;
 import java.nio.charset.Charset;
 
 import ds.hdfs.IDataNode.*;
+import ds.hdfs.hdfsProto.ClientQuery;
+import ds.hdfs.hdfsProto.DataNodeResponse;
 
 public class DataNode implements IDataNode
 {
@@ -37,28 +39,7 @@ public class DataNode implements IDataNode
     	this.MyChunksFile = this.MyIP + "_chunks.txt";
     }
 
-    public static void appendtoFile(String Filename, String Line)
-    {
-        BufferedWriter bw = null;
-
-        try {
-            //append
-        } 
-        catch (IOException ioe) 
-        {
-            ioe.printStackTrace();
-        } 
-        finally 
-        {                       // always close the file
-            if (bw != null) try {
-                bw.close();
-            } catch (IOException ioe2) {
-            }
-        }
-
-    }
-
-    public byte[] readBlock(byte[] Inp)
+    public byte[] readBlock(byte[] inp)
     {
         try
         {
@@ -72,17 +53,39 @@ public class DataNode implements IDataNode
         return response.build().toByteArray();
     }
 
-    public byte[] writeBlock(byte[] Inp)
+    public byte[] writeBlock(byte[] inp)
     {
-        try
-        {
-        }
-        catch(Exception e)
-        {
-            System.out.println("Error at writeBlock ");
-            response.setStatus(-1);
-        }
+    	DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
 
+    	//Deserialize client message
+    	ClientQuery query;
+    	try{
+    		query = ClientQuery.parseFrom(inp);
+    	}catch(InvalidProtocolBufferException e) {
+    		System.out.println("Error parsing client query");
+    		e.printStackTrace();
+    		response.setResponse(null);
+    		response.setStatus(-1);
+    		return null;
+    	}
+    	//Create file and write it
+    	try {
+	    	File f = new File(query.getFilename());
+	    	f.createNewFile();
+	    	FileOutputStream fos = new FileOutputStream(f);
+	    	fos.write(query.getData());
+	    	fos.close();
+    	}catch(Exception e) {
+    		System.out.println("Error writing file in Data Node");
+    		e.printStackTrace();
+    		response.setResponse(null);
+    		response.setStatus(-1);
+    		return null;
+    	}
+    	
+    	//Let the client know that bytes were succesfully written
+    	response.setResponse(null);
+    	response.setStatus(1);
         return response.build().toByteArray();
     }
 

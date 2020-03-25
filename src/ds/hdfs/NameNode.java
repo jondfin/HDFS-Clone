@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import ds.hdfs.hdfsProto.ClientQuery;
 import ds.hdfs.hdfsProto.NameNodeData;
 import ds.hdfs.hdfsProto.NameNodeResponse;
 
@@ -35,7 +36,7 @@ import com.google.protobuf.*;
 
 public class NameNode implements INameNode{
 
-	private static ArrayList<String> fileMD;
+	private static ArrayList<FileInfo> fileList;
 	
 	protected Registry serverRegistry;
 	
@@ -66,23 +67,31 @@ public class NameNode implements INameNode{
 	public static class FileInfo
 	{
 		String filename;
-		int filehandle;
-		boolean writemode;
+//		int filehandle;
+//		boolean writemode;
 		ArrayList<Integer> Chunks;
-		public FileInfo(String name, int handle, boolean option)
+		
+//		public FileInfo(String name, int handle, boolean option)
+		public FileInfo(String name)
 		{
 			filename = name;
-			filehandle = handle;
-			writemode = option;
+//			filehandle = handle;
+//			writemode = option;
 			Chunks = new ArrayList<Integer>();
 		}
 	}
 	
-	/* Method to open a file given file name with read-write flag*/
-	
-	boolean findInFilelist(int fhandle)
+	/**
+	 * Name Node checks if it has the file
+	 * @param Name of the file to be searched for
+	 * @return FileInfo if it exists, null otherwise
+	 */
+	private FileInfo findInFilelist(String filename)
 	{
-		return false;
+		for(FileInfo file : fileList) {
+			if(file.filename.equals(filename)) return file;
+		}
+		return null;
 	}
 	
 	public void printFilelist()
@@ -118,30 +127,51 @@ public class NameNode implements INameNode{
 		return response.build().toByteArray();
 	}
 	
+	/**
+	 * Input is a byte array that contains the filename
+	 * Returns 1 and block locations if the file exists, 0 if the file does not exist
+	 */
 	public byte[] getBlockLocations(byte[] inp ) throws RemoteException
 	{
 		NameNodeResponse.Builder response = NameNodeResponse.newBuilder();
 		
+		//Deserialize client message
+		ClientQuery query;
+		try {
+			query = ClientQuery.parseFrom(inp);
+		} catch (InvalidProtocolBufferException e) {
+			System.out.println("Error parsing client query");
+			e.printStackTrace();
+			response.setResponse(null);
+    		response.setStatus(-1);
+			return null;
+		}
+		String filename = query.getFilename();
+		
 		//Check if file exists
-		if(findInFilelist() == false) {
-			System.out.println("File does no exist!");
-			response.setStatus(-1);
+		FileInfo f = findInFilelist(filename);
+		if(f != null) {
+			System.out.println("File does not exist!");
+			response.setResponse(null);
+			response.setStatus(0); //OK if the client wants to PUT file
 			return response.build().toByteArray();
 		}
 		
-		try
-		{
+		//File exists, can return block locations
+		String blockLocations = null;
+		for(Integer i : f.Chunks) {
+			blockLocations = blockLocations.concat(i.toString());
 		}
-		catch(Exception e)
-		{
-			System.err.println("Error at getBlockLocations "+ e.toString());
-			e.printStackTrace();
-			response.setStatus(-1);
-		}		
+		response.setResponse(ByteString.copyFrom(blockLocations.getBytes()));
+		response.setStatus(1); //OK
+		
 		return response.build().toByteArray();
 	}
 	
-	
+	/**
+	 * Input is a byte array that contains the filename and filesize
+	 * Returns 1 if blocks assigned, -1 otherwise
+	 */
 	public byte[] assignBlock(byte[] inp ) throws RemoteException
 	{
 		try
@@ -226,8 +256,19 @@ public class NameNode implements INameNode{
 			System.out.println("Created meta-data file");
 		}
 		
-		for(String nnd : md.getDataList()) {
-			fileMD.add(nnd);
+		//Bring file metadata into memory from storage file
+		//Lines are stored as such: <filename>:[block, block, ..., block]
+		//ex. a.txt:1,5,13
+		for(ByteString nnd : md.getDataList()) { //TODO change to String maybe?
+			String parsedLine[] = nnd.toString().split(":"); //split between filename and blocks
+			String blocks[] = parsedLine[1].split(","); //parse out the block numbers
+			
+			//Create fileinfo
+			FileInfo f = new FileInfo(parsedLine[0]);
+			for(String blockNum : blocks) {
+				f.Chunks.add(Integer.parseInt(blockNum));
+			}
+			fileList.add(f);
 		}
 		
 		//Enable service
