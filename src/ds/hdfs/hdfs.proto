@@ -8,6 +8,8 @@ option java_outer_classname = "hdfsProto";
 //Client sends queries to Name Node
 message ClientQuery{
 	optional string filename = 1; //contains the filename requested, omitted if command is ls
+	optional int32 filesize = 2; //contains the size of the file requested, only used for 
+	optional bytes data = 3; //contains the actual file data
 }
 
 /*
@@ -30,10 +32,10 @@ message DataNodeResponse{
 
 //Persist data in the name node
 message NameNodeData{
-	repeated bytes data = 1; 
+	repeated string data = 1; 
 }
 
 //Persist data in the data node
 message DataNodeData{
-	repeated bytes data = 1;
+	repeated string data = 1;
 }
