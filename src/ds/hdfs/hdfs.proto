@@ -7,8 +7,7 @@ option java_outer_classname = "hdfsProto";
 
 //Client sends queries to Name Node
 message ClientQuery{
-	required string type = 1; //can be read or write
-	optional string filename = 2; //contains the filename requested, omitted if command is ls
+	optional string filename = 1; //contains the filename requested, omitted if command is ls
 }
 
 /*
@@ -20,11 +19,13 @@ message ClientQuery{
 //Response to client requests for file
 message NameNodeResponse{
 	required bytes response = 1; //Contains Data Node locations
+	required int32 status = 2; //-1 for error otherwise good
 }
 
 //Response to client request for file data
 message DataNodeResponse{
 	required bytes response = 1; //Contains actual data
+	required int32 status = 2; //-1 for error otherwise good
 }
 
 //Persist data in the name node
