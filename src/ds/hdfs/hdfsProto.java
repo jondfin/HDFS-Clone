@@ -49,7 +49,7 @@ public final class hdfsProto {
      *contains the size of the file requested, only used for 
      * </pre>
      *
-     * <code>optional int32 filesize = 2;</code>
+     * <code>optional int64 filesize = 2;</code>
      */
     boolean hasFilesize();
     /**
@@ -57,9 +57,9 @@ public final class hdfsProto {
      *contains the size of the file requested, only used for 
      * </pre>
      *
-     * <code>optional int32 filesize = 2;</code>
+     * <code>optional int64 filesize = 2;</code>
      */
-    int getFilesize();
+    long getFilesize();
 
     /**
      * <pre>
@@ -95,7 +95,7 @@ public final class hdfsProto {
     }
     private ClientQuery() {
       filename_ = "";
-      filesize_ = 0;
+      filesize_ = 0L;
       data_ = com.google.protobuf.ByteString.EMPTY;
     }
 
@@ -135,7 +135,7 @@ public final class hdfsProto {
             }
             case 16: {
               bitField0_ |= 0x00000002;
-              filesize_ = input.readInt32();
+              filesize_ = input.readInt64();
               break;
             }
             case 26: {
@@ -223,13 +223,13 @@ public final class hdfsProto {
     }
 
     public static final int FILESIZE_FIELD_NUMBER = 2;
-    private int filesize_;
+    private long filesize_;
     /**
      * <pre>
      *contains the size of the file requested, only used for 
      * </pre>
      *
-     * <code>optional int32 filesize = 2;</code>
+     * <code>optional int64 filesize = 2;</code>
      */
     public boolean hasFilesize() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
@@ -239,9 +239,9 @@ public final class hdfsProto {
      *contains the size of the file requested, only used for 
      * </pre>
      *
-     * <code>optional int32 filesize = 2;</code>
+     * <code>optional int64 filesize = 2;</code>
      */
-    public int getFilesize() {
+    public long getFilesize() {
       return filesize_;
     }
 
@@ -284,7 +284,7 @@ public final class hdfsProto {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 1, filename_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeInt32(2, filesize_);
+        output.writeInt64(2, filesize_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         output.writeBytes(3, data_);
@@ -302,7 +302,7 @@ public final class hdfsProto {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(2, filesize_);
+          .computeInt64Size(2, filesize_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
@@ -357,7 +357,8 @@ public final class hdfsProto {
       }
       if (hasFilesize()) {
         hash = (37 * hash) + FILESIZE_FIELD_NUMBER;
-        hash = (53 * hash) + getFilesize();
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getFilesize());
       }
       if (hasData()) {
         hash = (37 * hash) + DATA_FIELD_NUMBER;
@@ -487,7 +488,7 @@ public final class hdfsProto {
         super.clear();
         filename_ = "";
         bitField0_ = (bitField0_ & ~0x00000001);
-        filesize_ = 0;
+        filesize_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
         data_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
@@ -708,13 +709,13 @@ public final class hdfsProto {
         return this;
       }
 
-      private int filesize_ ;
+      private long filesize_ ;
       /**
        * <pre>
        *contains the size of the file requested, only used for 
        * </pre>
        *
-       * <code>optional int32 filesize = 2;</code>
+       * <code>optional int64 filesize = 2;</code>
        */
       public boolean hasFilesize() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
@@ -724,9 +725,9 @@ public final class hdfsProto {
        *contains the size of the file requested, only used for 
        * </pre>
        *
-       * <code>optional int32 filesize = 2;</code>
+       * <code>optional int64 filesize = 2;</code>
        */
-      public int getFilesize() {
+      public long getFilesize() {
         return filesize_;
       }
       /**
@@ -734,9 +735,9 @@ public final class hdfsProto {
        *contains the size of the file requested, only used for 
        * </pre>
        *
-       * <code>optional int32 filesize = 2;</code>
+       * <code>optional int64 filesize = 2;</code>
        */
-      public Builder setFilesize(int value) {
+      public Builder setFilesize(long value) {
         bitField0_ |= 0x00000002;
         filesize_ = value;
         onChanged();
@@ -747,11 +748,11 @@ public final class hdfsProto {
        *contains the size of the file requested, only used for 
        * </pre>
        *
-       * <code>optional int32 filesize = 2;</code>
+       * <code>optional int64 filesize = 2;</code>
        */
       public Builder clearFilesize() {
         bitField0_ = (bitField0_ & ~0x00000002);
-        filesize_ = 0;
+        filesize_ = 0L;
         onChanged();
         return this;
       }
@@ -3318,7 +3319,7 @@ public final class hdfsProto {
   static {
     java.lang.String[] descriptorData = {
       "\n\nhdfs.proto\022\004hdfs\"?\n\013ClientQuery\022\020\n\010fil" +
-      "ename\030\001 \001(\t\022\020\n\010filesize\030\002 \001(\005\022\014\n\004data\030\003 " +
+      "ename\030\001 \001(\t\022\020\n\010filesize\030\002 \001(\003\022\014\n\004data\030\003 " +
       "\001(\014\"4\n\020NameNodeResponse\022\020\n\010response\030\001 \002(" +
       "\014\022\016\n\006status\030\002 \002(\005\"4\n\020DataNodeResponse\022\020\n" +
       "\010response\030\001 \002(\014\022\016\n\006status\030\002 \002(\005\"\034\n\014NameN" +
