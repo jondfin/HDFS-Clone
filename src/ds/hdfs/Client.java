@@ -87,10 +87,13 @@ public class Client
     {
 	        System.out.println("Going to put file" + Filename);
 	        BufferedInputStream bis;
-	        int filesize = -1;
+	        long filesize = -1;
+	        byte data[];
 	        try{
 	        	//Read bytes from file
-	            bis = new BufferedInputStream(new FileInputStream(new File(Filename)));
+	        	File f = new File(Filename);
+	        	filesize = f.length();
+	            bis = new BufferedInputStream(new FileInputStream(f));
 	        }catch(Exception e){
 	            System.out.println("File not found !!!");
 	            return;
@@ -117,9 +120,9 @@ public class Client
 	            	ClientQuery.Builder cq2 = ClientQuery.newBuilder();
 	            	cq2.setFilename(Filename);
 	            	cq2.setFilesize(filesize);
-	            	byte blockLocations[] = NNStub.assignBlock(cq2.build().toByteArray());
+	            	byte assignedBlocks[] = NNStub.assignBlock(cq2.build().toByteArray());
 	            	//Send bytes to Data Node to write
-	            	DataNodeResponse dataNodeResponse = DataNodeResponse.parseFrom(DNStub.writeBlock(blockLocations));
+	            	DataNodeResponse dataNodeResponse = DataNodeResponse.parseFrom(DNStub.writeBlock(assignedBlocks));
 	            	if(dataNodeResponse.getStatus() == 1) {
 	            		System.out.println("Successfully put " + Filename + " into HDFS");
 	            		return;

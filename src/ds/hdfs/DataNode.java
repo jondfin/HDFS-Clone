@@ -73,7 +73,7 @@ public class DataNode implements IDataNode
 	    	File f = new File(query.getFilename());
 	    	f.createNewFile();
 	    	FileOutputStream fos = new FileOutputStream(f);
-	    	fos.write(query.getData());
+	    	fos.write(query.getData().toByteArray());
 	    	fos.close();
     	}catch(Exception e) {
     		System.out.println("Error writing file in Data Node");

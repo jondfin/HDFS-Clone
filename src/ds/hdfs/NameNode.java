@@ -36,8 +36,10 @@ import com.google.protobuf.*;
 
 public class NameNode implements INameNode{
 
+	//Holds the list of files and their meta-data
 	private static ArrayList<FileInfo> fileList;
-	
+
+	protected static long blockSize = 64; //Measured in bytes. Read in from nn_config. Default 64 Bytes
 	protected Registry serverRegistry;
 	
 	String ip;
@@ -174,14 +176,22 @@ public class NameNode implements INameNode{
 	 */
 	public byte[] assignBlock(byte[] inp ) throws RemoteException
 	{
-		try
-		{
-		}
-		catch(Exception e)
-		{
+		NameNodeResponse.Builder response = NameNodeResponse.newBuilder();
+		
+		//Deserialize message
+		ClientQuery query;
+		try{
+			query = ClientQuery.parseFrom(inp);
+			String filename = query.getFilename();
+			long filesize = query.getFilesize();
+			long numberOfBlocks = filesize / blockSize;
+			long remainder = (filesize/blockSize) > 0 ? filesize % blockSize : 0; //in case file is not a multiple of blockSize
+		}catch(Exception e) {
 			System.err.println("Error at AssignBlock "+ e.toString());
 			e.printStackTrace();
+			response.setResponse(null);
 			response.setStatus(-1);
+			return null;
 		}
 		
 		return response.build().toByteArray();
@@ -234,8 +244,10 @@ public class NameNode implements INameNode{
 		//Set up name node
 		NameNode nn = null;
 		BufferedReader br = new BufferedReader(new FileReader("src/nn_config.txt"));
-		String line = br.readLine();
-		while( (line = br.readLine()) != null) {
+		String line = br.readLine(); //ignore first line
+		line = br.readLine(); //get block size
+		blockSize = Long.parseLong(line);
+		while( (line = br.readLine()) != null) { //TODO loop not needed
 			String parsedLine[] = line.split(";");
 			//Create new name node
 			nn = new NameNode(parsedLine[1], Integer.parseInt(parsedLine[2]), parsedLine[0]);
@@ -259,7 +271,7 @@ public class NameNode implements INameNode{
 		//Bring file metadata into memory from storage file
 		//Lines are stored as such: <filename>:[block, block, ..., block]
 		//ex. a.txt:1,5,13
-		for(ByteString nnd : md.getDataList()) { //TODO change to String maybe?
+		for(String nnd : md.getDataList()) { //TODO change to String maybe?
 			String parsedLine[] = nnd.toString().split(":"); //split between filename and blocks
 			String blocks[] = parsedLine[1].split(","); //parse out the block numbers
 			
