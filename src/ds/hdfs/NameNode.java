@@ -22,6 +22,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +39,8 @@ public class NameNode implements INameNode{
 
 	//Holds the list of files and their meta-data
 	private static ArrayList<FileInfo> fileList;
+	//Keep track of what blocks are being used
+	private static BitSet bitset = new BitSet(Integer.MAX_VALUE); //might be too big 
 
 	protected static long blockSize = 64; //Measured in bytes. Read in from nn_config. Default 64 Bytes
 	protected Registry serverRegistry;
@@ -96,10 +99,6 @@ public class NameNode implements INameNode{
 		return null;
 	}
 	
-	public void printFilelist()
-	{
-	}
-	
 	public byte[] openFile(byte[] inp) throws RemoteException
 	{
 		try
@@ -131,7 +130,7 @@ public class NameNode implements INameNode{
 	
 	/**
 	 * Input is a byte array that contains the filename
-	 * Returns 1 and block locations if the file exists, 0 if the file does not exist
+	 * Returns 1 and block locations if the file exists, 0 if the file does not exist, -1 for error
 	 */
 	public byte[] getBlockLocations(byte[] inp ) throws RemoteException
 	{
@@ -146,7 +145,7 @@ public class NameNode implements INameNode{
 			e.printStackTrace();
 			response.setResponse(null);
     		response.setStatus(-1);
-			return null;
+    		return response.build().toByteArray();
 		}
 		String filename = query.getFilename();
 		
@@ -171,41 +170,86 @@ public class NameNode implements INameNode{
 	}
 	
 	/**
-	 * Input is a byte array that contains the filename and filesize
-	 * Returns 1 if blocks assigned, -1 otherwise
+	 * Input is the filename
+	 * Returns an available block number
 	 */
 	public byte[] assignBlock(byte[] inp ) throws RemoteException
 	{
 		NameNodeResponse.Builder response = NameNodeResponse.newBuilder();
 		
 		//Deserialize message
-		ClientQuery query;
-		try{
-			query = ClientQuery.parseFrom(inp);
+		try {
+			ClientQuery query = ClientQuery.parseFrom(inp);
+			int available = bitset.nextSetBit(0);
+			if(available == -1) {
+				System.out.println("Error assigning blocks: No more blocks left!");
+				response.setStatus(-1);
+				return null;
+			}
+			//Block is available, map it and send it to client
 			String filename = query.getFilename();
-			long filesize = query.getFilesize();
-			long numberOfBlocks = filesize / blockSize;
-			long remainder = (filesize/blockSize) > 0 ? filesize % blockSize : 0; //in case file is not a multiple of blockSize
-		}catch(Exception e) {
-			System.err.println("Error at AssignBlock "+ e.toString());
+			for(FileInfo f : fileList) {
+				if(f.filename.equals(filename)) {
+					f.Chunks.add(Integer.valueOf(available));
+					break;
+				}
+			}
+			response.setResponse(ByteString.copyFrom((String.valueOf(available).getBytes())));
+			response.setStatus(1);
+		} catch (InvalidProtocolBufferException e) {
+			System.out.println("Error assigning blocks: InvalidProtocolBufferException");
 			e.printStackTrace();
-			response.setResponse(null);
 			response.setStatus(-1);
 			return null;
 		}
 		
 		return response.build().toByteArray();
+		
+		
+//		ClientQuery query;
+//		try{
+//			query = ClientQuery.parseFrom(inp);
+//			String filename = query.getFilename();
+//			long filesize = query.getFilesize();
+//			int numberOfBlocks = (int)(filesize / blockSize); //risking overflow here
+//			int remainder = (int)(filesize % blockSize); //in case file is not a multiple of blockSize
+//			numberOfBlocks += remainder;
+//			
+//			//Look for contiguous region of blocks
+//			for(int i = 0; i < bitset.length(); i++) {
+//				if(bitset.get(i, i+numberOfBlocks).isEmpty() == true) {
+//					bitset.set(i, i+numberOfBlocks);
+//					response.setResponse(null);
+//					response.setStatus(1);
+//					break;
+//				}
+//			}
+//			
+//		}catch(Exception e) {
+//			System.err.println("Error at AssignBlock "+ e.toString());
+//			e.printStackTrace();
+//			response.setResponse(null);
+//			response.setStatus(-1);
+//		}
+		
 	}
 		
 	
 	public byte[] list(byte[] inp ) throws RemoteException
 	{
-		try
-		{
-		}catch(Exception e)
-		{
+		NameNodeResponse.Builder response = NameNodeResponse.newBuilder();
+		
+		try{
+			String list = null;
+			for(FileInfo f : fileList) {
+				list = list.concat(f.filename + " ");
+			}
+			response.setResponse(ByteString.copyFrom(list.getBytes()));
+			response.setStatus(1);
+		}catch(Exception e){
 			System.err.println("Error at list "+ e.toString());
 			e.printStackTrace();
+			response.setResponse(null);
 			response.setStatus(-1);
 		}
 		return response.build().toByteArray();
@@ -226,8 +270,6 @@ public class NameNode implements INameNode{
 		}
 		return response.build().toByteArray();
 	}
-	
-	
 	
 	public byte[] heartBeat(byte[] inp ) throws RemoteException
 	{
@@ -260,27 +302,28 @@ public class NameNode implements INameNode{
 		try{
 			//Read from file
 			md = NameNodeData.parseFrom(new FileInputStream(new File("src/NNMD.txt")));
+			//Bring file metadata into memory from storage file
+			//Lines are stored as such: <filename>:[block, block, ..., block]
+			//ex. a.txt:1,5,13
+			for(String nnd : md.getDataList()) {
+				String parsedLine[] = nnd.toString().split(":"); //split between filename and blocks
+				String blocks[] = parsedLine[1].split(","); //parse out the block numbers
+				
+				//Create fileinfo
+				FileInfo f = new FileInfo(parsedLine[0]);
+				for(String blockNum : blocks) {
+					f.Chunks.add(Integer.parseInt(blockNum));
+					bitset.set(Integer.parseInt(blockNum));
+				}
+				fileList.add(f);
+			}
 		}catch(Exception e) {
 			System.out.println("Name Node meta-data file does not exist");
 			File f = new File("src/NNMD.txt");
 			f.createNewFile(); //create new file if not found
 			md = NameNodeData.parseFrom(new FileInputStream(new File("src/NNMD.txt")));
+			fileList = new ArrayList<>();
 			System.out.println("Created meta-data file");
-		}
-		
-		//Bring file metadata into memory from storage file
-		//Lines are stored as such: <filename>:[block, block, ..., block]
-		//ex. a.txt:1,5,13
-		for(String nnd : md.getDataList()) { //TODO change to String maybe?
-			String parsedLine[] = nnd.toString().split(":"); //split between filename and blocks
-			String blocks[] = parsedLine[1].split(","); //parse out the block numbers
-			
-			//Create fileinfo
-			FileInfo f = new FileInfo(parsedLine[0]);
-			for(String blockNum : blocks) {
-				f.Chunks.add(Integer.parseInt(blockNum));
-			}
-			fileList.add(f);
 		}
 		
 		//Enable service

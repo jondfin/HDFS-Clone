@@ -53,6 +53,9 @@ public class DataNode implements IDataNode
         return response.build().toByteArray();
     }
 
+    /**
+     * Receives the data to write
+     */
     public byte[] writeBlock(byte[] inp)
     {
     	DataNodeResponse.Builder response = DataNodeResponse.newBuilder();

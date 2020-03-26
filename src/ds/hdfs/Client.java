@@ -18,6 +18,8 @@ import ds.hdfs.hdfsProto.NameNodeResponse;
 
 public class Client
 {
+	protected static long blockSize = 64;
+	
     //Variables Required
     public INameNode NNStub; //Name Node stub
     public IDataNode DNStub; //Data Node stub
@@ -27,6 +29,8 @@ public class Client
 			//Read the nn_config to get info
 			BufferedReader br = new BufferedReader(new FileReader("src/nn_config.txt"));
 			String line = br.readLine();
+			line = br.readLine();
+			blockSize = Long.parseLong(line);
 			while( (line = br.readLine()) != null) {
 				String parsedLine[] = line.split(";");
 				//Create new name node
@@ -85,66 +89,59 @@ public class Client
      */
     public void PutFile(String Filename) //Put File
     {
-	        System.out.println("Going to put file" + Filename);
-	        BufferedInputStream bis;
-	        long filesize = -1;
-	        byte data[];
-	        try{
-	        	//Read bytes from file
-	        	File f = new File(Filename);
-	        	filesize = f.length();
-	            bis = new BufferedInputStream(new FileInputStream(f));
-	        }catch(Exception e){
-	            System.out.println("File not found !!!");
-	            return;
-	        }
-	        try {
-	        	bis.close();
-	        }catch(Exception e) {
-	        	System.out.println("Error closing inputstream");
-	        }
-	        
-	        //Create protobuf message
-	    	ClientQuery.Builder cq = ClientQuery.newBuilder();
-	    	cq.setFilename(Filename);
-            byte inp[] = cq.build().toByteArray();
-            
-            //Query NameNode
-            byte queryResponse[];
-            NameNodeResponse nameNodeResponse;
-            try {
-				queryResponse = NNStub.getBlockLocations(inp); //will not return block locations if the file does not exist
-	            nameNodeResponse = NameNodeResponse.parseFrom(queryResponse);
-	            if(nameNodeResponse.getStatus() == 0) { //File does not exist, can put 
-	            	//Have the Name Node assign blocks
-	            	ClientQuery.Builder cq2 = ClientQuery.newBuilder();
-	            	cq2.setFilename(Filename);
-	            	cq2.setFilesize(filesize);
-	            	byte assignedBlocks[] = NNStub.assignBlock(cq2.build().toByteArray());
-	            	//Send bytes to Data Node to write
-	            	DataNodeResponse dataNodeResponse = DataNodeResponse.parseFrom(DNStub.writeBlock(assignedBlocks));
-	            	if(dataNodeResponse.getStatus() == 1) {
-	            		System.out.println("Successfully put " + Filename + " into HDFS");
-	            		return;
-	            	}else {
-	            		System.out.println("Error: Could not put file into HDFS");
-	            	}
-	            }else { //File already exists, cannot put
-	            	System.out.println("Error: File already exists!");
-	            	return;
-	            }
-			} catch (RemoteException e) {
-				System.out.println("Error getting block locations: RemoteException");
-				System.out.println("Could not put file into HDFS");
-				e.printStackTrace();
-				return;
-			} catch (InvalidProtocolBufferException e) {
-				System.out.println("Error getting block locations: InvalidProtocolBufferException");
-				System.out.println("Could not put file into HDFS");
-				e.printStackTrace();
+    	System.out.println("Going to put file " + Filename);
+    	
+    	try {
+    		//Ask Name Node to put file
+        	ClientQuery.Builder cq = ClientQuery.newBuilder();
+        	cq.setFilename(Filename);
+			NameNodeResponse blockLocations = NameNodeResponse.parseFrom(NNStub.getBlockLocations(cq.build().toByteArray()));
+			if(blockLocations.getStatus() == -1) {
+				//Start reading bytes from file
+				File f = new File(Filename);
+				BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
+				int bytesRead;
+				byte buffer[] = new byte[(int)blockSize];
+				while( (bytesRead = bis.read(buffer)) > 0) {
+					cq.clear();
+					cq.setFilename(Filename);
+					//Get block from Name Node
+					NameNodeResponse blockNum = NameNodeResponse.parseFrom(NNStub.assignBlock(cq.build().toByteArray()));
+					//Write block to Data Node
+					Block b = Block.newBuilder();
+					b.setBlocknum = blockNum.getResponse();
+					b.setData = ByteString.copyFrom(buffer);
+					DataNodeResponse response= DNStub.writeBlock(b.build().toByteArray());
+					if(response.getStatus() == -1) {
+						System.out.println("Error writing blocks to data node...Aborting");
+						System.out.println("Couldn't put file into HDFS");
+						bis.close();
+						return;
+					}
+				}
+				bis.close();
+			}else {
+				System.out.println("File already exists!");
 				return;
 			}
-	    	
+		} catch (RemoteException e) {
+			System.out.println("Error putting file into HDFS: RemoteException");
+			e.printStackTrace();
+			return;
+		} catch (InvalidProtocolBufferException e) {
+			System.out.println("Error putting file into HDFS: InvalidProtocolBufferException");
+			e.printStackTrace();
+			return;
+		} catch (FileNotFoundException e) {
+			System.out.println("Error putting file into HDFS: FileNotFoundException");
+			e.printStackTrace();
+			return;
+		} catch (IOException e) {
+			System.out.println("Error putting file into HDFS: IOException");
+			e.printStackTrace();
+			return;
+		}
+    	
     }
 
     public void GetFile(String Filename)
