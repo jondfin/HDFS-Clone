@@ -1,4 +1,5 @@
 package ds.hdfs;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.rmi.*;
 import java.rmi.registry.LocateRegistry;
@@ -11,6 +12,7 @@ import java.io.*;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import ds.hdfs.hdfsProto.Block;
 import ds.hdfs.hdfsProto.ClientQuery;
 import ds.hdfs.hdfsProto.DataNodeResponse;
 //import ds.hdfs.INameNode;
@@ -23,34 +25,27 @@ public class Client
     //Variables Required
     public INameNode NNStub; //Name Node stub
     public IDataNode DNStub; //Data Node stub
+    
     public Client()
     {
-		try {
+    	try {
 			//Read the nn_config to get info
 			BufferedReader br = new BufferedReader(new FileReader("src/nn_config.txt"));
 			String line = br.readLine();
-			line = br.readLine();
+			line = br.readLine(); //Get blocksize
 			blockSize = Long.parseLong(line);
-			while( (line = br.readLine()) != null) {
-				String parsedLine[] = line.split(";");
-				//Create new name node
-				NNStub = GetNNStub(parsedLine[0], parsedLine[1], Integer.parseInt(parsedLine[2]));
-				System.out.println("Retrieved Name Node stub");
-			}
-			br.close();
-			
-			//Read the dn_config to get info
-			br = new BufferedReader(new FileReader("src/dn_config.txt"));
+			//Get name, ip, and port
 			line = br.readLine();
-			while( (line = br.readLine()) != null) {
-				String parsedLine[] = line.split(";");
-				DNStub = GetDNStub(parsedLine[0], parsedLine[1], Integer.parseInt(parsedLine[2]));
-				System.out.println("Retrieved Data Node stub");
-			}
 			br.close();
+			String parsedLine[] = line.split(";");
+			//Create new name node
+			NNStub = GetNNStub(parsedLine[0], parsedLine[1], Integer.parseInt(parsedLine[2]));
+			System.out.println("Retrieved Name Node stub");
 			
 		}catch(Exception e) {
+			System.out.println("Error starting client");
 			e.printStackTrace();
+			return;
 		}
     }
 
@@ -58,11 +53,13 @@ public class Client
     {
         while(true)
         {
+        	System.out.println("Looking for " + Name + " at " + IP + ":" + Port);
             try{
                 Registry registry = LocateRegistry.getRegistry(IP, Port);
                 IDataNode stub = (IDataNode) registry.lookup(Name);
                 return stub;
             }catch(Exception e){
+            	e.printStackTrace();
                 continue;
             }
         }
@@ -70,14 +67,26 @@ public class Client
 
     public INameNode GetNNStub(String Name, String IP, int Port)
     {
+    	System.out.println("Name: " + Name);
+    	//TODO temp
+    	try {
+			IP = InetAddress.getLocalHost().getHostAddress();
+		} catch (UnknownHostException e1) {
+//			e1.printStackTrace();
+		}
+    	System.out.println("IP: " + IP);
+    	System.out.println("Port: " + Port);
         while(true)
         {
+        	System.out.println("Looking for " + Name);
             try
             {
                 Registry registry = LocateRegistry.getRegistry(IP, Port);
                 INameNode stub = (INameNode) registry.lookup(Name);
+                System.out.println("Found NN");
                 return stub;
             }catch(Exception e){
+//            	e.printStackTrace();
                 continue;
             }
         }
@@ -90,28 +99,46 @@ public class Client
     public void PutFile(String Filename) //Put File
     {
     	System.out.println("Going to put file " + Filename);
-    	
+    	File f = new File(Filename);
+    	if(!f.exists()) {
+    		System.out.println("File does not exist locally");
+    		return;
+    	}
     	try {
     		//Ask Name Node to put file
         	ClientQuery.Builder cq = ClientQuery.newBuilder();
         	cq.setFilename(Filename);
 			NameNodeResponse blockLocations = NameNodeResponse.parseFrom(NNStub.getBlockLocations(cq.build().toByteArray()));
-			if(blockLocations.getStatus() == -1) {
+			if(blockLocations.getStatus() == 0) {
+				System.out.println("OK from server...Reading bytes from file");
 				//Start reading bytes from file
-				File f = new File(Filename);
 				BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
-				int bytesRead;
+				int bytesRead = 0;
 				byte buffer[] = new byte[(int)blockSize];
 				while( (bytesRead = bis.read(buffer)) > 0) {
-					cq.clear();
+					System.out.println("Read " + bytesRead + " bytes");
+					cq = ClientQuery.newBuilder();
 					cq.setFilename(Filename);
 					//Get block from Name Node
-					NameNodeResponse blockNum = NameNodeResponse.parseFrom(NNStub.assignBlock(cq.build().toByteArray()));
+					NameNodeResponse nameNodeBlockResponse = NameNodeResponse.parseFrom(NNStub.assignBlock(cq.build().toByteArray()));
+					if(nameNodeBlockResponse.getStatus() == -1) {
+						System.out.println("Error getting block from Name Node...Aborting");
+						System.out.println("Couldn't put file into HDFS");
+						bis.close();
+						return;
+					}
+					//Returns as blocknumber;ip;port;name
+					String blockInfo[] = nameNodeBlockResponse.getResponse().toStringUtf8().split(";");
+					int blockNum = Integer.parseInt(blockInfo[0]);
+					
+					//Get the data node to send block to
+					DNStub = GetDNStub(blockInfo[3], blockInfo[1], Integer.parseInt(blockInfo[2]));
+					
 					//Write block to Data Node
-					Block b = Block.newBuilder();
-					b.setBlocknum = blockNum.getResponse();
-					b.setData = ByteString.copyFrom(buffer);
-					DataNodeResponse response= DNStub.writeBlock(b.build().toByteArray());
+					Block.Builder b = Block.newBuilder();
+					b.setBlocknum(blockNum);
+					b.setData(ByteString.copyFrom(buffer));
+					DataNodeResponse response = DataNodeResponse.parseFrom(DNStub.writeBlock(b.build().toByteArray()));
 					if(response.getStatus() == -1) {
 						System.out.println("Error writing blocks to data node...Aborting");
 						System.out.println("Couldn't put file into HDFS");
@@ -119,6 +146,7 @@ public class Client
 						return;
 					}
 				}
+				System.out.println("Successfully written " + Filename + " to HDFS");
 				bis.close();
 			}else {
 				System.out.println("File already exists!");
@@ -156,14 +184,24 @@ public class Client
 	    }
     }
 
+    /**
+     * Get list of files from HDFS
+     */
     public void List()
     {
     	System.out.println("Getting file list");
+    	try {
+			NNStub.list(null);
+		} catch (RemoteException e) {
+			System.out.println("Error getting file list: RemoteException");
+			e.printStackTrace();
+			return;
+		}
     }
 
     public static void main(String[] args) throws RemoteException, UnknownHostException
     {
-        // To read config file and Connect to NameNode
+    	// To read config file and Connect to NameNode
         //Intitalize the Client
         Client Me = new Client();
         System.out.println("Welcome to HDFS!!");

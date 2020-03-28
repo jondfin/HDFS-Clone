@@ -19,6 +19,7 @@ import java.io.*;
 import java.nio.charset.Charset;
 
 import ds.hdfs.IDataNode.*;
+import ds.hdfs.hdfsProto.Block;
 import ds.hdfs.hdfsProto.ClientQuery;
 import ds.hdfs.hdfsProto.DataNodeResponse;
 
@@ -30,13 +31,15 @@ public class DataNode implements IDataNode
     protected int MyPort;
 //    protected String MyName;
     protected int MyID;
+    
+    private static final ByteString ERROR_MSG = ByteString.copyFrom("NULL".getBytes());
 
     public DataNode(int id, String ip, int port)
     {
     	this.MyID = id;
     	this.MyIP = ip;
     	this.MyPort = port;
-    	this.MyChunksFile = this.MyIP + "_chunks.txt";
+    	this.MyChunksFile = "DN" + this.MyID + "_chunks.txt";
     }
 
     public byte[] readBlock(byte[] inp)
@@ -54,40 +57,46 @@ public class DataNode implements IDataNode
     }
 
     /**
-     * Receives the data to write
+     * Receives the block number to write and the data associated with it
      */
     public byte[] writeBlock(byte[] inp)
     {
     	DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
 
     	//Deserialize client message
-    	ClientQuery query;
+    	Block b;
     	try{
-    		query = ClientQuery.parseFrom(inp);
+    		b = Block.parseFrom(inp);
     	}catch(InvalidProtocolBufferException e) {
     		System.out.println("Error parsing client query");
     		e.printStackTrace();
-    		response.setResponse(null);
+    		response.setResponse(ERROR_MSG);
     		response.setStatus(-1);
     		return null;
     	}
-    	//Create file and write it
+    	int blockNum = b.getBlocknum();
+    	ByteString data = b.getData();
+    	String chunk = blockNum + ";" + data.toStringUtf8();
+
+    	System.out.println(chunk);
+    	
+    	//Write to blockfile
     	try {
-	    	File f = new File(query.getFilename());
-	    	f.createNewFile();
-	    	FileOutputStream fos = new FileOutputStream(f);
-	    	fos.write(query.getData().toByteArray());
+	    	File f = new File(this.MyChunksFile);
+	    	if(f.exists() == false) f.createNewFile();
+	    	FileOutputStream fos = new FileOutputStream(f, true);
+	    	fos.write(chunk.getBytes());
 	    	fos.close();
     	}catch(Exception e) {
     		System.out.println("Error writing file in Data Node");
     		e.printStackTrace();
-    		response.setResponse(null);
+    		response.setResponse(ERROR_MSG);
     		response.setStatus(-1);
     		return null;
     	}
     	
     	//Let the client know that bytes were succesfully written
-    	response.setResponse(null);
+    	response.setResponse(ERROR_MSG);
     	response.setStatus(1);
         return response.build().toByteArray();
     }
@@ -100,10 +109,23 @@ public class DataNode implements IDataNode
     {
         try
         {
+        	//Create local registry on localhost
+        	LocateRegistry.createRegistry(Port);
             IDataNode stub = (IDataNode) UnicastRemoteObject.exportObject(this, 0);
             System.setProperty("java.rmi.server.hostname", IP);
             Registry registry = LocateRegistry.getRegistry(Port);
-            registry.rebind(Name, stub);
+            System.out.println(registry);
+            boolean found = false;
+            while(!found) {
+            	try{
+            		registry.rebind(Name, stub);
+            		found = true;
+            	}catch(Exception r) {
+            		System.err.println("Couldn't connect to rmiregistry");
+            		System.err.println("Attempting connection again...");
+    				TimeUnit.SECONDS.sleep(1);
+            	}
+            }
             System.out.println("\nDataNode connected to RMIregistry\n");
         }catch(Exception e){
             System.err.println("Server Exception: " + e.toString());
@@ -130,10 +152,11 @@ public class DataNode implements IDataNode
 
     public static void main(String args[]) throws InvalidProtocolBufferException, IOException, InterruptedException
     {
-        //Set up name node
+        //Get up name node
         NameNode nn = null;
 		BufferedReader br = new BufferedReader(new FileReader("src/nn_config.txt"));
 		String line = br.readLine();
+		line = br.readLine(); //skip over block size
 		while( (line = br.readLine()) != null) {
 			String parsedLine[] = line.split(";");
 			//Create new name node
@@ -150,31 +173,19 @@ public class DataNode implements IDataNode
             System.setSecurityManager(new SecurityManager());
         }
         
-        ArrayList<DataNode> DataNodes = new ArrayList<>();
-        
-        //Set up data nodes
+        //Set up data node
+        DataNode dn = null;
         br = new BufferedReader(new FileReader("src/dn_config.txt"));
         line = br.readLine();
         while( (line = br.readLine()) != null) {
         	String parsedLine[] = line.split(";");
-        	DataNodes.add(new DataNode(Integer.parseInt(parsedLine[0]), parsedLine[1], Integer.parseInt(parsedLine[2])));
+        	dn = new DataNode(Integer.parseInt(parsedLine[0]), parsedLine[1], Integer.parseInt(parsedLine[2]));
         }
         br.close();
         
 		//Bind to data nodes to server
-        for(DataNode dn : DataNodes) {
-        	boolean found = false;
-        	while(!found){
-				try{
-					dn.BindServer(nn.name, nn.ip, nn.port);
-					System.out.println("Bound DataNode: " + dn.MyID + " with address " + dn.MyIP + ":" + dn.MyPort);
-					found = true;
-				}catch(Exception e) {
-					System.err.println("Couldn't connect to rmiregistry");
-					TimeUnit.SECONDS.sleep(1);
-				}
-        	}
-        }
+		dn.BindServer(String.valueOf(dn.MyID), dn.MyIP, dn.MyPort);
         
+    	//TODO GetNNStub to send heartbeats
     }
 }
