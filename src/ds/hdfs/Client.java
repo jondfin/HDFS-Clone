@@ -172,16 +172,74 @@ public class Client
     	
     }
 
+    /**
+     * Retrieve file from HDFS to put into local
+     * @param Name of file to be brought from HDFS
+     */
     public void GetFile(String Filename)
     {
-	    System.out.println("Going to get file" + Filename);
-	    BufferedInputStream bis;
-	    try{
-//	        bis = new BufferedInputStream(new FileInputStream(File));
-	    }catch(Exception e){
-	        System.out.println("File not found !!!");
-	        return;
-	    }
+	    System.out.println("Going to get file " + Filename);
+	    
+	    //Create query
+	    ClientQuery.Builder cq = ClientQuery.newBuilder();
+	    cq.setFilename(Filename);
+	    
+	    //Ask Name node for file
+	    try {
+	    	//This will return locations of the blocks if the file exists within HDFS
+	    	NameNodeResponse blockLocations = NameNodeResponse.parseFrom(NNStub.getBlockLocations(cq.build().toByteArray()));
+	    	if(blockLocations.getStatus() == 0) {
+	    		System.out.println("File does not exist in HDFS!");
+	    		return;
+	    	}
+	    	//Block locations are returned in the form
+	    	//ip;port;id;block1,block2,...,blockN
+	    	String parsedBL[] = blockLocations.getResponse().toStringUtf8().split(";");
+	    	
+	    	//Get Data Node to connect to
+	    	DNStub = GetDNStub(parsedBL[2], parsedBL[0], Integer.parseInt(parsedBL[1]));
+	    	
+	    	//Create file locally
+	    	File f = new File(Filename);
+	    	if(f.exists() == true) {
+	    		System.out.println("File already exists locally!");
+	    		return;
+	    	}
+	    	f.createNewFile();
+	    	FileOutputStream fos = new FileOutputStream(f, true);
+	    	//Assumption: all blocks are in order and the data will be reassembled in order
+	    	for(String blockNum : parsedBL[3].split(",")) {
+	    		System.out.println("Requesting block " + blockNum + " from Data Node");
+	    		DataNodeResponse data = DataNodeResponse.parseFrom(DNStub.readBlock(blockNum.getBytes()));
+	    		if(data.getStatus() == -1) {
+	    			System.out.println("Error: Could not retrieve block from Data Node");
+	    			f.delete();
+	    			fos.close();
+	    			return;
+	    		}
+//	    		System.out.println("Received data: " + data.getResponse());
+	    		//Write file locally
+	    		String parsedData = data.getResponse().toStringUtf8();
+	    		parsedData.replaceFirst(blockNum+";", "");
+	    		System.out.println(parsedData);
+	    		fos.write(parsedData.getBytes());
+	    	}
+	    	System.out.println("Successfully retrieved " + Filename + " from HDFS");
+	    	fos.close();
+	    }catch(RemoteException e) {
+	    	System.out.println("Error retrieving file from HDFS: RemoteException");
+	    	e.printStackTrace();
+	    	return;
+	    } catch (InvalidProtocolBufferException e) {
+	    	System.out.println("Error retrieving file from HDFS: InvalidProtocolBufferException");
+			e.printStackTrace();
+			return;
+		} catch (IOException e) {
+			System.out.println("Error creating file from HDFS: IOException");
+			e.printStackTrace();
+			return;
+		}
+	    
     }
 
     /**
@@ -191,9 +249,14 @@ public class Client
     {
     	System.out.println("Getting file list");
     	try {
-			NNStub.list(null);
+			NameNodeResponse files = NameNodeResponse.parseFrom(NNStub.list(null));
+			System.out.println(files.getResponse().toStringUtf8().trim());
 		} catch (RemoteException e) {
 			System.out.println("Error getting file list: RemoteException");
+			e.printStackTrace();
+			return;
+		} catch (InvalidProtocolBufferException e) {
+			System.out.println("Error getting file list: InvalidProtocolBufferException");
 			e.printStackTrace();
 			return;
 		}

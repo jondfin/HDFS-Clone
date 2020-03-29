@@ -21,7 +21,9 @@ import java.nio.charset.Charset;
 import ds.hdfs.IDataNode.*;
 import ds.hdfs.hdfsProto.Block;
 import ds.hdfs.hdfsProto.ClientQuery;
+import ds.hdfs.hdfsProto.DataNodeData;
 import ds.hdfs.hdfsProto.DataNodeResponse;
+import ds.hdfs.hdfsProto.NameNodeData;
 
 public class DataNode implements IDataNode
 {
@@ -42,18 +44,62 @@ public class DataNode implements IDataNode
     	this.MyChunksFile = "DN" + this.MyID + "_chunks.txt";
     }
 
+    /**
+     * Receives block number to retrieve
+     */
     public byte[] readBlock(byte[] inp)
     {
-        try
-        {
-        }
-        catch(Exception e)
-        {
-            System.out.println("Error at readBlock");
-            response.setStatus(-1);
-        }
-
-        return response.build().toByteArray();
+    	DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
+    	
+    	//Deserialize client message
+    	Block b;
+    	try {
+    		b = Block.parseFrom(inp);
+    	}catch(InvalidProtocolBufferException e) {
+    		System.out.println("Error parsing client query in readBlock");
+    		e.printStackTrace();
+    		response.setResponse(ERROR_MSG);
+    		response.setStatus(-1);
+    		return response.build().toByteArray();
+    	}
+    	int blockNum = b.getBlocknum();
+    	ByteString data = b.getData(); //TODO temp can remove later
+    	
+    	System.out.println("Client requested block " + blockNum);
+    	
+    	//Open chunk file to read data
+    	try {
+    		BufferedReader br = new BufferedReader(new FileReader(this.MyChunksFile));
+    		String line = null;
+    		while( (line = br.readLine()) != null) {
+    			//Deserialize line of data
+    			DataNodeData dsData = DataNodeData.parseFrom(line.getBytes());
+    			String dsLine = dsData.getData(0);
+    			System.out.println(dsLine);
+    			if(Integer.parseInt(dsLine.split(";")[0]) == blockNum) {
+    				//Found requested block
+    				response.setResponse(ByteString.copyFrom(dsLine.getBytes()));
+    				response.setStatus(1);
+    				br.close();
+    				return response.build().toByteArray();
+    			}
+    		}
+    		br.close();
+    		System.out.println("Could not find block " + blockNum);
+    		response.setResponse(ERROR_MSG);
+    		response.setStatus(-1);
+            return response.build().toByteArray();
+    	}catch(FileNotFoundException e) {
+    		System.out.println("Could not find " + this.MyChunksFile);
+    		response.setResponse(ERROR_MSG);
+    		response.setStatus(-1);
+    		return response.build().toByteArray();
+    	} catch (IOException e) {
+    		System.out.println("Could not read block: IOException");
+    		response.setResponse(ERROR_MSG);
+    		response.setStatus(-1);
+    		return response.build().toByteArray();
+		}
     }
 
     /**
@@ -68,11 +114,11 @@ public class DataNode implements IDataNode
     	try{
     		b = Block.parseFrom(inp);
     	}catch(InvalidProtocolBufferException e) {
-    		System.out.println("Error parsing client query");
+    		System.out.println("Error parsing client query in writeBlock");
     		e.printStackTrace();
     		response.setResponse(ERROR_MSG);
     		response.setStatus(-1);
-    		return null;
+    		return response.build().toByteArray();
     	}
     	int blockNum = b.getBlocknum();
     	ByteString data = b.getData();
@@ -80,19 +126,23 @@ public class DataNode implements IDataNode
 
     	System.out.println(chunk);
     	
+    	//Serialize data
+    	DataNodeData.Builder serializedData = DataNodeData.newBuilder();
+    	serializedData.addData(chunk);
+    	
     	//Write to blockfile
     	try {
 	    	File f = new File(this.MyChunksFile);
 	    	if(f.exists() == false) f.createNewFile();
 	    	FileOutputStream fos = new FileOutputStream(f, true);
-	    	fos.write(chunk.getBytes());
+	    	fos.write(serializedData.build().toByteArray());
 	    	fos.close();
     	}catch(Exception e) {
     		System.out.println("Error writing file in Data Node");
     		e.printStackTrace();
     		response.setResponse(ERROR_MSG);
     		response.setStatus(-1);
-    		return null;
+    		return response.build().toByteArray();
     	}
     	
     	//Let the client know that bytes were succesfully written

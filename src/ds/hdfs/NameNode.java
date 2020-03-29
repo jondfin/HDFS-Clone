@@ -89,10 +89,10 @@ public class NameNode implements INameNode{
 //		public FileInfo(String name, int handle, boolean option)
 		public FileInfo(String name)
 		{
-			filename = name;
+			this.filename = name;
 //			filehandle = handle;
 //			writemode = option;
-			Chunks = new ArrayList<Integer>();
+			this.Chunks = new ArrayList<Integer>();
 		}
 	}
 	
@@ -173,11 +173,15 @@ public class NameNode implements INameNode{
 		}
 		
 		//File exists, can return block locations
-		String blockLocations = null;
+		String blockLocations = "";
+		int count = 0;
 		for(Integer i : f.Chunks) {
 			blockLocations = blockLocations.concat(i.toString());
+			if(count < f.Chunks.size() - 1) blockLocations = blockLocations.concat(",");
+			count++;
 		}
-		response.setResponse(ByteString.copyFrom(blockLocations.getBytes()));
+		String msg = dataNodes.get(0).toString() + ";" + blockLocations;
+		response.setResponse(ByteString.copyFrom(msg.getBytes()));
 		response.setStatus(1); //OK
 		
 		return response.build().toByteArray();
@@ -242,7 +246,7 @@ public class NameNode implements INameNode{
 		NameNodeResponse.Builder response = NameNodeResponse.newBuilder();
 		
 		try{
-			String list = null;
+			String list = "";
 			for(FileInfo f : fileList) {
 				list = list.concat(f.filename + " ");
 			}
@@ -292,7 +296,10 @@ public class NameNode implements INameNode{
 	 */
 	private void writeMD() {
 		try {
-			FileOutputStream fos = new FileOutputStream(new File("NNMD.txt"));
+			FileOutputStream fos = new FileOutputStream(new File("NNMD.txt"), true);
+			//Serialize the data
+			NameNodeData.Builder serializedData = NameNodeData.newBuilder();
+			
 			for(FileInfo f : fileList) {
 				String line = f.filename + ":";
 				int count = 0;
@@ -301,7 +308,9 @@ public class NameNode implements INameNode{
 					if(count < f.Chunks.size() - 1) line = line.concat(",");
 					count++;
 				}
+				serializedData.addData(line);
 			}
+			fos.write(serializedData.build().toByteArray());
 			fos.close();
 		}catch(FileNotFoundException e) {
 			System.out.println("Error: Could not find meta data file!");
