@@ -13,7 +13,7 @@ message ClientQuery{
 //Used to send blocks to/from Data Nodes
 message Block{
 	required int32 blocknum = 1; //block to write to
-	required bytes data = 2; //data for block to hold
+	optional bytes data = 2; //data for block to hold
 }
 
 /*
@@ -24,13 +24,13 @@ message Block{
 
 //Response to client requests for file
 message NameNodeResponse{
-	required bytes response = 1; //Contains Data Node locations
+	optional bytes response = 1; //Contains Data Node locations
 	required int32 status = 2; //-1 for error otherwise good
 }
 
 //Response to client request for file data
 message DataNodeResponse{
-	required bytes response = 1; //Contains actual data
+	optional bytes response = 1; //Contains actual data
 	required int32 status = 2; //-1 for error otherwise good
 }
 
