@@ -50,7 +50,7 @@ public class DataNode implements IDataNode
     }
 
     /**
-     * Receives block number to retrieve
+     * Receives filename and block number to retrieve
      */
     public byte[] readBlock(byte[] inp)
     {
@@ -68,7 +68,7 @@ public class DataNode implements IDataNode
     		return response.build().toByteArray();
     	}
     	int blockNum = requestedBlock.getBlocknum();
-//    	ByteString data = requestedBlock.getData(); //TODO temp can remove later
+    	String filename = requestedBlock.getFilename();
     	
     	System.out.println("Client requested block " + blockNum);
     	
@@ -77,14 +77,20 @@ public class DataNode implements IDataNode
     		//Deserialize line of data
     		FileInputStream fis = new FileInputStream(this.MyChunksFile);
 			DataNodeData dsData = DataNodeData.parseFrom(fis);
-			for(Block b : dsData.getBlockList()) {
-				if(b.getBlocknum() == blockNum) {
-    				//Found requested block
-    				response.setResponse(b.getData());
-    				response.setStatus(1);
-    				fis.close();
-    				return response.build().toByteArray();
-    			}
+			//Look for filename
+			for(DataNodeBlocks dnb : dsData.getDataList()) {
+				if(dnb.getFilename().equals(filename)) {
+					//Find and send requested block
+					for(Block b : dnb.getBlockList()) {
+						if(b.getBlocknum() == blockNum) {
+		    				//Found requested block
+		    				response.setResponse(b.getData());
+		    				response.setStatus(1);
+		    				fis.close();
+		    				return response.build().toByteArray();
+		    			}
+					}
+				}
 			}
     		fis.close();
     		System.out.println("Could not find block " + blockNum);
@@ -126,8 +132,11 @@ public class DataNode implements IDataNode
     	System.out.println(blockToWrite.getData().toStringUtf8());
     	
     	//Serialize data
-    	DataNodeBlocks.Builder serializedData = DataNodeBlocks.newBuilder();
-    	serializedData.addBlock(blockToWrite);
+    	DataNodeBlocks.Builder block = DataNodeBlocks.newBuilder();
+    	block.setFilename(blockToWrite.getFilename());
+    	block.addBlock(blockToWrite);
+    	DataNodeData.Builder serializedData = DataNodeData.newBuilder();
+    	serializedData.addData(block);
     	
     	//Write to blockfile
     	try {

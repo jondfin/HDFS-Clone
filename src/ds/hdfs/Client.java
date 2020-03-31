@@ -138,6 +138,7 @@ public class Client
 					
 					//Write block to Data Node
 					Block.Builder b = Block.newBuilder();
+					b.setFilename(Filename);
 					b.setBlocknum(blockNum);
 					b.setData(ByteString.copyFrom(buffer));
 					DataNodeResponse response = DataNodeResponse.parseFrom(DNStub.writeBlock(b.build().toByteArray()));
@@ -212,10 +213,10 @@ public class Client
 	    	f.createNewFile();
 	    	FileOutputStream fos = new FileOutputStream(f, true);
 	    	//Assumption: all blocks are in order and the data will be reassembled in order
-	    	System.out.println(parsedBL[3]);
 	    	for(String blockNum : parsedBL[3].split(",")) {
 	    		//Create a new block and serialize it
 	    		Block.Builder block = Block.newBuilder();
+	    		block.setFilename(Filename);
 	    		block.setBlocknum(Integer.parseInt(blockNum));
 	    		block.setData(ERROR_MSG);
 	    		DataNodeResponse data = DataNodeResponse.parseFrom(DNStub.readBlock(block.build().toByteArray()));
@@ -225,12 +226,6 @@ public class Client
 	    			System.out.println(f.delete());
 	    			return;
 	    		}
-//	    		System.out.println("Received data: " + data.getResponse());
-	    		//Write file locally
-//	    		String parsedData = data.getResponse().toStringUtf8();
-//	    		parsedData.replaceFirst(blockNum+";", "");
-//	    		System.out.println(parsedData);
-	    		System.out.println(data.getResponse().toStringUtf8());
 	    		fos.write(data.getResponse().toStringUtf8().getBytes());
 	    	}
 	    	System.out.println("Successfully retrieved " + Filename + " from HDFS");
