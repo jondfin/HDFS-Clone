@@ -21,6 +21,7 @@ import java.nio.charset.Charset;
 import ds.hdfs.IDataNode.*;
 import ds.hdfs.hdfsProto.Block;
 import ds.hdfs.hdfsProto.ClientQuery;
+import ds.hdfs.hdfsProto.DataNodeBlocks;
 import ds.hdfs.hdfsProto.DataNodeData;
 import ds.hdfs.hdfsProto.DataNodeResponse;
 import ds.hdfs.hdfsProto.NameNodeData;
@@ -125,7 +126,7 @@ public class DataNode implements IDataNode
     	System.out.println(blockToWrite.getData().toStringUtf8());
     	
     	//Serialize data
-    	DataNodeData.Builder serializedData = DataNodeData.newBuilder();
+    	DataNodeBlocks.Builder serializedData = DataNodeBlocks.newBuilder();
     	serializedData.addBlock(blockToWrite);
     	
     	//Write to blockfile

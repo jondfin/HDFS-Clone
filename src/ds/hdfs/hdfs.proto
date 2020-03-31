@@ -12,8 +12,9 @@ message ClientQuery{
 
 //Used to send blocks to/from Data Nodes
 message Block{
-	required int32 blocknum = 1; //block to write to
-	optional bytes data = 2; //data for block to hold
+	required string filename = 1; //name of file
+	required int32 blocknum = 2; //block to write to
+	optional bytes data = 3; //data for block to hold
 }
 
 /*
