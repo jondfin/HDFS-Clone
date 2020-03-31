@@ -206,6 +206,7 @@ public class NameNode implements INameNode{
 				return response.build().toByteArray();
 			}
 			//Block is available, map it and send it to client
+			//TODO remove since this is used for appending data
 			boolean found = false;
 			String filename = query.getFilename();
 			for(FileInfo f : fileList) {

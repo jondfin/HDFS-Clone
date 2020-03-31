@@ -69,22 +69,33 @@ public class DataNode implements IDataNode
     	
     	//Open chunk file to read data
     	try {
-    		BufferedReader br = new BufferedReader(new FileReader(this.MyChunksFile));
-    		String line = null;
-    		while( (line = br.readLine()) != null) {
+//    		BufferedReader br = new BufferedReader(new FileReader(this.MyChunksFile));
+//    		String line = null;
+//    		while( (line = br.readLine()) != null) {
     			//Deserialize line of data
-    			DataNodeData dsData = DataNodeData.parseFrom(line.getBytes());
-    			String dsLine = dsData.getData(0);
-    			System.out.println(dsLine);
-    			if(Integer.parseInt(dsLine.split(";")[0]) == blockNum) {
+    		FileInputStream fis = new FileInputStream(this.MyChunksFile);
+			DataNodeData dsData = DataNodeData.parseFrom(fis);
+			for(String s : dsData.getDataList()) {
+				System.out.println(s);
+				if(Integer.parseInt(s.split(";")[0]) == blockNum) {
     				//Found requested block
-    				response.setResponse(ByteString.copyFrom(dsLine.getBytes()));
+    				response.setResponse(ByteString.copyFrom(s.getBytes()));
     				response.setStatus(1);
-    				br.close();
+    				fis.close();
     				return response.build().toByteArray();
     			}
-    		}
-    		br.close();
+			}
+//    			String dsLine = dsData.getData(0);
+//    			System.out.println(dsLine);
+//    			if(Integer.parseInt(dsLine.split(";")[0]) == blockNum) {
+//    				//Found requested block
+//    				response.setResponse(ByteString.copyFrom(dsLine.getBytes()));
+//    				response.setStatus(1);
+//    				br.close();
+//    				return response.build().toByteArray();
+//    			}
+//    		}
+    		fis.close();
     		System.out.println("Could not find block " + blockNum);
     		response.setResponse(ERROR_MSG);
     		response.setStatus(-1);

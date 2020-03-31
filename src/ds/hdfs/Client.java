@@ -22,6 +22,8 @@ public class Client
 {
 	protected static long blockSize = 64;
 	
+	private static final ByteString ERROR_MSG = ByteString.copyFrom("NULL".getBytes());//TODO temp
+	
     //Variables Required
     public INameNode NNStub; //Name Node stub
     public IDataNode DNStub; //Data Node stub
@@ -115,7 +117,7 @@ public class Client
 				BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
 				int bytesRead = 0;
 				byte buffer[] = new byte[(int)blockSize];
-				while( (bytesRead = bis.read(buffer)) > 0) {
+				while( (bytesRead = bis.read(buffer)) > 0) { //TODO check if file is empty
 					System.out.println("Read " + bytesRead + " bytes");
 					cq = ClientQuery.newBuilder();
 					cq.setFilename(Filename);
@@ -208,13 +210,17 @@ public class Client
 	    	f.createNewFile();
 	    	FileOutputStream fos = new FileOutputStream(f, true);
 	    	//Assumption: all blocks are in order and the data will be reassembled in order
+	    	System.out.println(parsedBL[3]);
 	    	for(String blockNum : parsedBL[3].split(",")) {
-	    		System.out.println("Requesting block " + blockNum + " from Data Node");
-	    		DataNodeResponse data = DataNodeResponse.parseFrom(DNStub.readBlock(blockNum.getBytes()));
+	    		//Create a new block and serialize it
+	    		Block.Builder block = Block.newBuilder();
+	    		block.setBlocknum(Integer.parseInt(blockNum));
+	    		block.setData(ERROR_MSG);
+	    		DataNodeResponse data = DataNodeResponse.parseFrom(DNStub.readBlock(block.build().toByteArray()));
 	    		if(data.getStatus() == -1) {
 	    			System.out.println("Error: Could not retrieve block from Data Node");
-	    			f.delete();
 	    			fos.close();
+	    			System.out.println(f.delete());
 	    			return;
 	    		}
 //	    		System.out.println("Received data: " + data.getResponse());
