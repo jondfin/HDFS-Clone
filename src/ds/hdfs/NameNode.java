@@ -48,7 +48,9 @@ public class NameNode implements INameNode{
 	
 	private static final ByteString ERROR_MSG = ByteString.copyFrom("ERROR".getBytes());
 	
-	protected static long blockSize = 64; //Measured in bytes. Read in from nn_config. Default 64 Bytes
+	private static long blockSize = 64; //Measured in bytes. Default 64 Bytes
+	private static int timeout = 240;  //Measured in seconds. Default 2 mins or 120 seconds
+	
 	protected Registry serverRegistry;
 	
 	String ip;
@@ -169,7 +171,7 @@ public class NameNode implements INameNode{
 		FileInfo f = findInFilelist(filename);
 		if(f == null) {
 			System.out.println("File does not exist in HDFS!");
-			response.setResponse(ERROR_MSG); //not necessarily an error
+//			response.setResponse(ERROR_MSG); //not necessarily an error
 			response.setStatus(0); //OK if the client wants to PUT file
 			return response.build().toByteArray();
 		}
@@ -265,22 +267,26 @@ public class NameNode implements INameNode{
 	}
 	
 	// Datanode <-> Namenode interaction methods
+	/*
+	 * On startup and every x seconds (configurable) the DN uses NNStub.heartBeat()
+	 * This allows the NN to populate its in memory MD with files and blocks
+	 * blockReport() is unimplemented since all the info is contained within the heartbeat
+	 */
 	
 
 	public byte[] blockReport(byte[] inp ) throws RemoteException
 	{
-		//Deserialize input
-		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
-		try
-		{
-		}
-		catch(Exception e)
-		{
-			System.err.println("Error at blockReport "+ e.toString());
-			e.printStackTrace();
-			response.setStatus(-1);
-		}
-		return response.build().toByteArray();
+		return null;
+//		try
+//		{
+//		}
+//		catch(Exception e)
+//		{
+//			System.err.println("Error at blockReport "+ e.toString());
+//			e.printStackTrace();
+//			response.setStatus(-1);
+//		}
+//		return response.build().toByteArray();
 	}
 	
 	public byte[] heartBeat(byte[] inp ) throws RemoteException
@@ -288,39 +294,6 @@ public class NameNode implements INameNode{
 		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
 		
 		return response.build().toByteArray();
-	}
-	
-	/**
-	 * Write to NNMD.txt
-	 * File structure is:
-	 * file1:block1,block2,...
-	 * ...
-	 * fileN:block1,block2,...
-	 */
-	private void writeMD() {
-		try {
-			FileOutputStream fos = new FileOutputStream(new File("NNMD.txt"), false);
-			//Serialize the data
-			NameNodeData.Builder serializedData = NameNodeData.newBuilder();
-			
-			for(FileInfo f : fileList) {
-				String line = f.filename + ":";
-				int count = 0;
-				for(Integer block : f.Chunks) {
-					line = line.concat(String.valueOf(block));
-					if(count < f.Chunks.size() - 1) line = line.concat(",");
-					count++;
-				}
-				serializedData.addData(line);
-			}
-			fos.write(serializedData.build().toByteArray());
-			fos.close();
-		}catch(FileNotFoundException e) {
-			System.out.println("Error: Could not find meta data file!");
-		} catch (IOException e) {
-			System.out.println("Error: IOException");
-		}
-		return;
 	}
 	
 	public static void main(String[] args) throws InterruptedException, NumberFormatException, IOException
@@ -346,37 +319,47 @@ public class NameNode implements INameNode{
 		}
 		br.close();
 		
+		//TODO probably dont need this since the MD should be reconstructed through blockReports
+		//TODO MD just persists filenames --> let client know that file is unavailable if DN goes down
 		//Initialize meta-data
-		NameNodeData md;
-		FileInputStream fis;
-		try{
-			//Read from file
-			fis = new FileInputStream(new File("src/NNMD.txt"));
-			md = NameNodeData.parseFrom(fis);
-			//Bring file metadata into memory from storage file
-			//Lines are stored as such: <filename>:[block, block, ..., block]
-			//ex. a.txt:1,5,13
-			for(String nnd : md.getDataList()) {
-				String parsedLine[] = nnd.toString().split(":"); //split between filename and blocks
-				String blocks[] = parsedLine[1].split(","); //parse out the block numbers
-				
-				//Create fileinfo
-				FileInfo f = new FileInfo(parsedLine[0]);
-				for(String blockNum : blocks) {
-					f.Chunks.add(Integer.parseInt(blockNum));
-					bitset.set(Integer.parseInt(blockNum));
-				}
-				fileList.add(f);
-			}
-		}catch(Exception e) {
-			System.out.println("Name Node meta-data file does not exist");
-			File f = new File("src/NNMD.txt");
-			f.createNewFile(); //create new file if not found
-			fis = new FileInputStream(new File("src/NNMD.txt"));
-			md = NameNodeData.parseFrom(fis);
-			System.out.println("Created meta-data file");
-		}
-		fis.close();
+		/*
+		 * NameNodeData md; FileInputStream fis; 
+		 * try{ 
+		 * //Read from file fis = new
+		 * FileInputStream(new File("src/NNMD.txt"));
+		 *  md = NameNodeData.parseFrom(fis);
+		 * //Bring file metadata into memory from storage file
+		 *  //Lines are stored as
+		 * such: <filename>:[block, block, ..., block] 
+		 * //ex. a.txt:1,5,13 
+		 * for(String nnd : md.getDataList()) 
+		 * { 
+		 * String parsedLine[] = nnd.toString().split(":");
+		 * //split between filename and blocks
+		 *  String blocks[] = parsedLine[1].split(","); 
+		 *  //parse out the block numbers
+		 * 
+		 * //Create fileinfo 
+		 * FileInfo f = new FileInfo(parsedLine[0]); 
+		 * for(String blockNum : blocks) 
+		 * { 
+		 * f.Chunks.add(Integer.parseInt(blockNum));
+		 * bitset.set(Integer.parseInt(blockNum));
+		 *  } 
+		 *  fileList.add(f);
+		 *   }
+		 *    }catch(Exception e) 
+		 *    {
+		 *     System.out.println("Name Node meta-data file does not exist");
+		 *      File f = new File("src/NNMD.txt"); 
+		 *      f.createNewFile(); 
+		 *      //create new file if not found
+		 * fis = new FileInputStream(new File("src/NNMD.txt"));
+		 *  md = NameNodeData.parseFrom(fis);
+		 *   System.out.println("Created meta-data file");
+		 *    }
+		 * fis.close();
+		 */
 		
 		//Get data nodes
 		try{

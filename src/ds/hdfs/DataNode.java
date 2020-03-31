@@ -33,8 +33,12 @@ public class DataNode implements IDataNode
     protected int MyPort;
 //    protected String MyName;
     protected int MyID;
+//    private static TimerTask heartBeat;
+//    private Timer timer;
     
     private static final ByteString ERROR_MSG = ByteString.copyFrom("ERROR".getBytes());
+    
+    private static int interval = 30; //Measured in seconds. Default 30 seconds
 
     public DataNode(int id, String ip, int port)
     {
@@ -145,9 +149,6 @@ public class DataNode implements IDataNode
         return response.build().toByteArray();
     }
 
-    public void BlockReport() throws IOException
-    {
-    }
 
     public void BindServer(String Name, String IP, int Port)
     {
@@ -176,8 +177,9 @@ public class DataNode implements IDataNode
             e.printStackTrace();
         }
     }
+    
 
-    public INameNode GetNNStub(String Name, String IP, int Port)
+    public static INameNode GetNNStub(String Name, String IP, int Port)
     {
         while(true)
         {
@@ -197,16 +199,14 @@ public class DataNode implements IDataNode
     public static void main(String args[]) throws InvalidProtocolBufferException, IOException, InterruptedException
     {
         //Get up name node
-        NameNode nn = null;
 		BufferedReader br = new BufferedReader(new FileReader("src/nn_config.txt"));
 		String line = br.readLine();
 		line = br.readLine(); //skip over block size
-		while( (line = br.readLine()) != null) {
-			String parsedLine[] = line.split(";");
-			//Create new name node
-			nn = new NameNode(parsedLine[1], Integer.parseInt(parsedLine[2]), parsedLine[0]);
-			System.out.println("Found Name Node: \n\t" + parsedLine[0] + ": " + parsedLine[1] + " Port = " + Integer.parseInt(parsedLine[2]));
-		}
+		line = br.readLine();
+		String parsedLine[] = line.split(";");
+		//Create new name node
+		final NameNode nn = new NameNode(parsedLine[1], Integer.parseInt(parsedLine[2]), parsedLine[0]);
+		System.out.println("Found Name Node: \n\t" + parsedLine[0] + ": " + parsedLine[1] + " Port = " + Integer.parseInt(parsedLine[2]));
 		br.close();
 		
 		//Enable services
@@ -217,19 +217,38 @@ public class DataNode implements IDataNode
             System.setSecurityManager(new SecurityManager());
         }
         
-        //Set up data node
+        //Set up data nodes
         DataNode dn = null;
         br = new BufferedReader(new FileReader("src/dn_config.txt"));
         line = br.readLine();
         while( (line = br.readLine()) != null) {
-        	String parsedLine[] = line.split(";");
-        	dn = new DataNode(Integer.parseInt(parsedLine[0]), parsedLine[1], Integer.parseInt(parsedLine[2]));
+        	String parsedLine2[] = line.split(";");
+        	dn = new DataNode(Integer.parseInt(parsedLine2[0]), parsedLine2[1], Integer.parseInt(parsedLine2[2]));
+        	//Bind to data nodes to server
+    		dn.BindServer(String.valueOf(dn.MyID), dn.MyIP, dn.MyPort);
+    		//Schedule heartbeats
+//    		dn.heartBeat = new TimerTask() {
+//    			@Override
+//    			public void run() {
+//    				System.out.println("Sending heartbeat to " + nn.ip + ":" + nn.port);
+//    				INameNode stub = GetNNStub(nn.name, nn.ip, nn.port);
+//    				//Send blocks to Name Node
+//    				try {
+//	    				FileInputStream fis = new FileInputStream(new File(dn.MyChunksFile));
+//	    				DataNodeData blocks = DataNodeData.parseFrom(fis);
+//	    				ArrayList<Block> blockList = new ArrayList<>(blocks.getBlockList());
+//	    				for(Block b : blocks.getBlockList()) {
+//	    					
+//	    				}
+//    				}catch(FileNotFoundException e) {
+//    					e.printStackTrace();
+//    				} catch (IOException e) {
+//						e.printStackTrace();
+//					}
+//    			}
+//    		};
+//    		dn.timer.scheduleAtFixedRate(heartBeat, interval, interval);
         }
         br.close();
-        
-		//Bind to data nodes to server
-		dn.BindServer(String.valueOf(dn.MyID), dn.MyIP, dn.MyPort);
-        
-    	//TODO GetNNStub to send heartbeats
     }
 }

@@ -20,7 +20,7 @@ import ds.hdfs.hdfsProto.NameNodeResponse;
 
 public class Client
 {
-	protected static long blockSize = 64;
+	private static long blockSize = 64;
 	
 	private static final ByteString ERROR_MSG = ByteString.copyFrom("NULL".getBytes());//TODO temp
 	
