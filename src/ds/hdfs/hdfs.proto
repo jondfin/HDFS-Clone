@@ -36,10 +36,17 @@ message DataNodeResponse{
 
 //Persist data in the name node
 message NameNodeData{
-	repeated string data = 1; 
+	repeated string filelist = 1; 
 }
 
-//Persist data in the data node
+//Keep track of files and their blocks when persisting the data
+message DataNodeBlocks{
+	required string filename = 1;
+	repeated Block block = 2;
+}
+
+//Persisted data is stored as a list of files and their data
+//So file1:block1{data}, block2{data},...
 message DataNodeData{
-	repeated Block block = 1;
+	repeated DataNodeBlocks data = 1;
 }
