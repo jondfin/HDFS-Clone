@@ -147,6 +147,8 @@ public class Client
 						bis.close();
 						return;
 					}
+					//Make sure buffer is emptied out
+					Arrays.fill(buffer, (byte)0);				
 				}
 				System.out.println("Successfully written " + Filename + " to HDFS");
 				bis.close();
@@ -225,10 +227,11 @@ public class Client
 	    		}
 //	    		System.out.println("Received data: " + data.getResponse());
 	    		//Write file locally
-	    		String parsedData = data.getResponse().toStringUtf8();
-	    		parsedData.replaceFirst(blockNum+";", "");
-	    		System.out.println(parsedData);
-	    		fos.write(parsedData.getBytes());
+//	    		String parsedData = data.getResponse().toStringUtf8();
+//	    		parsedData.replaceFirst(blockNum+";", "");
+//	    		System.out.println(parsedData);
+	    		System.out.println(data.getResponse().toStringUtf8());
+	    		fos.write(data.getResponse().toStringUtf8().getBytes());
 	    	}
 	    	System.out.println("Successfully retrieved " + Filename + " from HDFS");
 	    	fos.close();

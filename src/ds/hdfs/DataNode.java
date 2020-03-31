@@ -34,7 +34,7 @@ public class DataNode implements IDataNode
 //    protected String MyName;
     protected int MyID;
     
-    private static final ByteString ERROR_MSG = ByteString.copyFrom("NULL".getBytes());
+    private static final ByteString ERROR_MSG = ByteString.copyFrom("ERROR".getBytes());
 
     public DataNode(int id, String ip, int port)
     {
@@ -52,9 +52,9 @@ public class DataNode implements IDataNode
     	DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
     	
     	//Deserialize client message
-    	Block b;
+    	Block requestedBlock;
     	try {
-    		b = Block.parseFrom(inp);
+    		requestedBlock = Block.parseFrom(inp);
     	}catch(InvalidProtocolBufferException e) {
     		System.out.println("Error parsing client query in readBlock");
     		e.printStackTrace();
@@ -62,39 +62,25 @@ public class DataNode implements IDataNode
     		response.setStatus(-1);
     		return response.build().toByteArray();
     	}
-    	int blockNum = b.getBlocknum();
-    	ByteString data = b.getData(); //TODO temp can remove later
+    	int blockNum = requestedBlock.getBlocknum();
+//    	ByteString data = requestedBlock.getData(); //TODO temp can remove later
     	
     	System.out.println("Client requested block " + blockNum);
     	
     	//Open chunk file to read data
     	try {
-//    		BufferedReader br = new BufferedReader(new FileReader(this.MyChunksFile));
-//    		String line = null;
-//    		while( (line = br.readLine()) != null) {
-    			//Deserialize line of data
+    		//Deserialize line of data
     		FileInputStream fis = new FileInputStream(this.MyChunksFile);
 			DataNodeData dsData = DataNodeData.parseFrom(fis);
-			for(String s : dsData.getDataList()) {
-				System.out.println(s);
-				if(Integer.parseInt(s.split(";")[0]) == blockNum) {
+			for(Block b : dsData.getBlockList()) {
+				if(b.getBlocknum() == blockNum) {
     				//Found requested block
-    				response.setResponse(ByteString.copyFrom(s.getBytes()));
+    				response.setResponse(b.getData());
     				response.setStatus(1);
     				fis.close();
     				return response.build().toByteArray();
     			}
 			}
-//    			String dsLine = dsData.getData(0);
-//    			System.out.println(dsLine);
-//    			if(Integer.parseInt(dsLine.split(";")[0]) == blockNum) {
-//    				//Found requested block
-//    				response.setResponse(ByteString.copyFrom(dsLine.getBytes()));
-//    				response.setStatus(1);
-//    				br.close();
-//    				return response.build().toByteArray();
-//    			}
-//    		}
     		fis.close();
     		System.out.println("Could not find block " + blockNum);
     		response.setResponse(ERROR_MSG);
@@ -121,9 +107,9 @@ public class DataNode implements IDataNode
     	DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
 
     	//Deserialize client message
-    	Block b;
+    	Block blockToWrite;
     	try{
-    		b = Block.parseFrom(inp);
+    		blockToWrite = Block.parseFrom(inp);
     	}catch(InvalidProtocolBufferException e) {
     		System.out.println("Error parsing client query in writeBlock");
     		e.printStackTrace();
@@ -131,15 +117,12 @@ public class DataNode implements IDataNode
     		response.setStatus(-1);
     		return response.build().toByteArray();
     	}
-    	int blockNum = b.getBlocknum();
-    	ByteString data = b.getData();
-    	String chunk = blockNum + ";" + data.toStringUtf8();
 
-    	System.out.println(chunk);
+    	System.out.println(blockToWrite.getData().toStringUtf8());
     	
     	//Serialize data
     	DataNodeData.Builder serializedData = DataNodeData.newBuilder();
-    	serializedData.addData(chunk);
+    	serializedData.addBlock(blockToWrite);
     	
     	//Write to blockfile
     	try {
@@ -157,7 +140,7 @@ public class DataNode implements IDataNode
     	}
     	
     	//Let the client know that bytes were succesfully written
-    	response.setResponse(ERROR_MSG);
+//    	response.setResponse(ERROR_MSG);
     	response.setStatus(1);
         return response.build().toByteArray();
     }

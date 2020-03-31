@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import ds.hdfs.hdfsProto.ClientQuery;
+import ds.hdfs.hdfsProto.DataNodeResponse;
 import ds.hdfs.hdfsProto.NameNodeData;
 import ds.hdfs.hdfsProto.NameNodeResponse;
 
@@ -45,7 +46,7 @@ public class NameNode implements INameNode{
 	//Keep track of the data nodes
 	private static ArrayList<DataNode> dataNodes = new ArrayList<>();
 	
-	private static final ByteString ERROR_MSG = ByteString.copyFrom("NULL".getBytes());
+	private static final ByteString ERROR_MSG = ByteString.copyFrom("ERROR".getBytes());
 	
 	protected static long blockSize = 64; //Measured in bytes. Read in from nn_config. Default 64 Bytes
 	protected Registry serverRegistry;
@@ -115,6 +116,7 @@ public class NameNode implements INameNode{
 	
 	public byte[] openFile(byte[] inp) throws RemoteException
 	{
+		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
 		try
 		{
 		}
@@ -124,11 +126,12 @@ public class NameNode implements INameNode{
 			e.printStackTrace();
 			response.setStatus(-1);
 		}
-		return response.toByteArray();
+		return response.build().toByteArray();
 	}
 	
 	public byte[] closeFile(byte[] inp ) throws RemoteException
 	{
+		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
 		try
 		{
 		}
@@ -141,7 +144,6 @@ public class NameNode implements INameNode{
 		
 		return response.build().toByteArray();
 	}
-	
 	/**
 	 * Input is a byte array that contains the filename
 	 * Returns 1 and block locations if the file exists, 0 if the file does not exist, -1 for error
@@ -263,9 +265,12 @@ public class NameNode implements INameNode{
 	}
 	
 	// Datanode <-> Namenode interaction methods
-		
+	
+
 	public byte[] blockReport(byte[] inp ) throws RemoteException
 	{
+		//Deserialize input
+		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
 		try
 		{
 		}
@@ -273,19 +278,16 @@ public class NameNode implements INameNode{
 		{
 			System.err.println("Error at blockReport "+ e.toString());
 			e.printStackTrace();
-			response.addStatus(-1);
+			response.setStatus(-1);
 		}
 		return response.build().toByteArray();
 	}
 	
 	public byte[] heartBeat(byte[] inp ) throws RemoteException
 	{
+		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
+		
 		return response.build().toByteArray();
-	}
-	
-	public void printMsg(String msg)
-	{
-		System.out.println(msg);		
 	}
 	
 	/**
@@ -297,7 +299,7 @@ public class NameNode implements INameNode{
 	 */
 	private void writeMD() {
 		try {
-			FileOutputStream fos = new FileOutputStream(new File("NNMD.txt"), true);
+			FileOutputStream fos = new FileOutputStream(new File("NNMD.txt"), false);
 			//Serialize the data
 			NameNodeData.Builder serializedData = NameNodeData.newBuilder();
 			
@@ -346,9 +348,11 @@ public class NameNode implements INameNode{
 		
 		//Initialize meta-data
 		NameNodeData md;
+		FileInputStream fis;
 		try{
 			//Read from file
-			md = NameNodeData.parseFrom(new FileInputStream(new File("src/NNMD.txt")));
+			fis = new FileInputStream(new File("src/NNMD.txt"));
+			md = NameNodeData.parseFrom(fis);
 			//Bring file metadata into memory from storage file
 			//Lines are stored as such: <filename>:[block, block, ..., block]
 			//ex. a.txt:1,5,13
@@ -368,9 +372,11 @@ public class NameNode implements INameNode{
 			System.out.println("Name Node meta-data file does not exist");
 			File f = new File("src/NNMD.txt");
 			f.createNewFile(); //create new file if not found
-			md = NameNodeData.parseFrom(new FileInputStream(new File("src/NNMD.txt")));
+			fis = new FileInputStream(new File("src/NNMD.txt"));
+			md = NameNodeData.parseFrom(fis);
 			System.out.println("Created meta-data file");
 		}
+		fis.close();
 		
 		//Get data nodes
 		try{
