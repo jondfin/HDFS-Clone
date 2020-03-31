@@ -41,5 +41,5 @@ message NameNodeData{
 
 //Persist data in the data node
 message DataNodeData{
-	repeated string data = 1;
+	repeated Block block = 1;
 }
