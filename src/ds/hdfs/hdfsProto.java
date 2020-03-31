@@ -620,10 +620,36 @@ public final class hdfsProto {
 
     /**
      * <pre>
+     *name of file
+     * </pre>
+     *
+     * <code>required string filename = 1;</code>
+     */
+    boolean hasFilename();
+    /**
+     * <pre>
+     *name of file
+     * </pre>
+     *
+     * <code>required string filename = 1;</code>
+     */
+    java.lang.String getFilename();
+    /**
+     * <pre>
+     *name of file
+     * </pre>
+     *
+     * <code>required string filename = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getFilenameBytes();
+
+    /**
+     * <pre>
      *block to write to
      * </pre>
      *
-     * <code>required int32 blocknum = 1;</code>
+     * <code>required int32 blocknum = 2;</code>
      */
     boolean hasBlocknum();
     /**
@@ -631,7 +657,7 @@ public final class hdfsProto {
      *block to write to
      * </pre>
      *
-     * <code>required int32 blocknum = 1;</code>
+     * <code>required int32 blocknum = 2;</code>
      */
     int getBlocknum();
 
@@ -640,7 +666,7 @@ public final class hdfsProto {
      *data for block to hold
      * </pre>
      *
-     * <code>optional bytes data = 2;</code>
+     * <code>optional bytes data = 3;</code>
      */
     boolean hasData();
     /**
@@ -648,7 +674,7 @@ public final class hdfsProto {
      *data for block to hold
      * </pre>
      *
-     * <code>optional bytes data = 2;</code>
+     * <code>optional bytes data = 3;</code>
      */
     com.google.protobuf.ByteString getData();
   }
@@ -668,6 +694,7 @@ public final class hdfsProto {
       super(builder);
     }
     private Block() {
+      filename_ = "";
       blocknum_ = 0;
       data_ = com.google.protobuf.ByteString.EMPTY;
     }
@@ -700,13 +727,19 @@ public final class hdfsProto {
               }
               break;
             }
-            case 8: {
+            case 10: {
+              com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000001;
+              filename_ = bs;
+              break;
+            }
+            case 16: {
+              bitField0_ |= 0x00000002;
               blocknum_ = input.readInt32();
               break;
             }
-            case 18: {
-              bitField0_ |= 0x00000002;
+            case 26: {
+              bitField0_ |= 0x00000004;
               data_ = input.readBytes();
               break;
             }
@@ -735,47 +768,101 @@ public final class hdfsProto {
     }
 
     private int bitField0_;
-    public static final int BLOCKNUM_FIELD_NUMBER = 1;
+    public static final int FILENAME_FIELD_NUMBER = 1;
+    private volatile java.lang.Object filename_;
+    /**
+     * <pre>
+     *name of file
+     * </pre>
+     *
+     * <code>required string filename = 1;</code>
+     */
+    public boolean hasFilename() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <pre>
+     *name of file
+     * </pre>
+     *
+     * <code>required string filename = 1;</code>
+     */
+    public java.lang.String getFilename() {
+      java.lang.Object ref = filename_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          filename_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <pre>
+     *name of file
+     * </pre>
+     *
+     * <code>required string filename = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getFilenameBytes() {
+      java.lang.Object ref = filename_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        filename_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int BLOCKNUM_FIELD_NUMBER = 2;
     private int blocknum_;
     /**
      * <pre>
      *block to write to
      * </pre>
      *
-     * <code>required int32 blocknum = 1;</code>
+     * <code>required int32 blocknum = 2;</code>
      */
     public boolean hasBlocknum() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
+      return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
      * <pre>
      *block to write to
      * </pre>
      *
-     * <code>required int32 blocknum = 1;</code>
+     * <code>required int32 blocknum = 2;</code>
      */
     public int getBlocknum() {
       return blocknum_;
     }
 
-    public static final int DATA_FIELD_NUMBER = 2;
+    public static final int DATA_FIELD_NUMBER = 3;
     private com.google.protobuf.ByteString data_;
     /**
      * <pre>
      *data for block to hold
      * </pre>
      *
-     * <code>optional bytes data = 2;</code>
+     * <code>optional bytes data = 3;</code>
      */
     public boolean hasData() {
-      return ((bitField0_ & 0x00000002) == 0x00000002);
+      return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
      * <pre>
      *data for block to hold
      * </pre>
      *
-     * <code>optional bytes data = 2;</code>
+     * <code>optional bytes data = 3;</code>
      */
     public com.google.protobuf.ByteString getData() {
       return data_;
@@ -787,6 +874,10 @@ public final class hdfsProto {
       if (isInitialized == 1) return true;
       if (isInitialized == 0) return false;
 
+      if (!hasFilename()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
       if (!hasBlocknum()) {
         memoizedIsInitialized = 0;
         return false;
@@ -798,10 +889,13 @@ public final class hdfsProto {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeInt32(1, blocknum_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, filename_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, data_);
+        output.writeInt32(2, blocknum_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBytes(3, data_);
       }
       unknownFields.writeTo(output);
     }
@@ -812,12 +906,15 @@ public final class hdfsProto {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(1, blocknum_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, filename_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, data_);
+          .computeInt32Size(2, blocknum_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(3, data_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -836,6 +933,11 @@ public final class hdfsProto {
       ds.hdfs.hdfsProto.Block other = (ds.hdfs.hdfsProto.Block) obj;
 
       boolean result = true;
+      result = result && (hasFilename() == other.hasFilename());
+      if (hasFilename()) {
+        result = result && getFilename()
+            .equals(other.getFilename());
+      }
       result = result && (hasBlocknum() == other.hasBlocknum());
       if (hasBlocknum()) {
         result = result && (getBlocknum()
@@ -857,6 +959,10 @@ public final class hdfsProto {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasFilename()) {
+        hash = (37 * hash) + FILENAME_FIELD_NUMBER;
+        hash = (53 * hash) + getFilename().hashCode();
+      }
       if (hasBlocknum()) {
         hash = (37 * hash) + BLOCKNUM_FIELD_NUMBER;
         hash = (53 * hash) + getBlocknum();
@@ -987,10 +1093,12 @@ public final class hdfsProto {
       }
       public Builder clear() {
         super.clear();
-        blocknum_ = 0;
+        filename_ = "";
         bitField0_ = (bitField0_ & ~0x00000001);
-        data_ = com.google.protobuf.ByteString.EMPTY;
+        blocknum_ = 0;
         bitField0_ = (bitField0_ & ~0x00000002);
+        data_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
 
@@ -1018,9 +1126,13 @@ public final class hdfsProto {
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
           to_bitField0_ |= 0x00000001;
         }
-        result.blocknum_ = blocknum_;
+        result.filename_ = filename_;
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
+        }
+        result.blocknum_ = blocknum_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
         }
         result.data_ = data_;
         result.bitField0_ = to_bitField0_;
@@ -1065,6 +1177,11 @@ public final class hdfsProto {
 
       public Builder mergeFrom(ds.hdfs.hdfsProto.Block other) {
         if (other == ds.hdfs.hdfsProto.Block.getDefaultInstance()) return this;
+        if (other.hasFilename()) {
+          bitField0_ |= 0x00000001;
+          filename_ = other.filename_;
+          onChanged();
+        }
         if (other.hasBlocknum()) {
           setBlocknum(other.getBlocknum());
         }
@@ -1077,6 +1194,9 @@ public final class hdfsProto {
       }
 
       public final boolean isInitialized() {
+        if (!hasFilename()) {
+          return false;
+        }
         if (!hasBlocknum()) {
           return false;
         }
@@ -1102,23 +1222,123 @@ public final class hdfsProto {
       }
       private int bitField0_;
 
+      private java.lang.Object filename_ = "";
+      /**
+       * <pre>
+       *name of file
+       * </pre>
+       *
+       * <code>required string filename = 1;</code>
+       */
+      public boolean hasFilename() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <pre>
+       *name of file
+       * </pre>
+       *
+       * <code>required string filename = 1;</code>
+       */
+      public java.lang.String getFilename() {
+        java.lang.Object ref = filename_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            filename_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <pre>
+       *name of file
+       * </pre>
+       *
+       * <code>required string filename = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getFilenameBytes() {
+        java.lang.Object ref = filename_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          filename_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <pre>
+       *name of file
+       * </pre>
+       *
+       * <code>required string filename = 1;</code>
+       */
+      public Builder setFilename(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        filename_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       *name of file
+       * </pre>
+       *
+       * <code>required string filename = 1;</code>
+       */
+      public Builder clearFilename() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        filename_ = getDefaultInstance().getFilename();
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       *name of file
+       * </pre>
+       *
+       * <code>required string filename = 1;</code>
+       */
+      public Builder setFilenameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        filename_ = value;
+        onChanged();
+        return this;
+      }
+
       private int blocknum_ ;
       /**
        * <pre>
        *block to write to
        * </pre>
        *
-       * <code>required int32 blocknum = 1;</code>
+       * <code>required int32 blocknum = 2;</code>
        */
       public boolean hasBlocknum() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
+        return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
        * <pre>
        *block to write to
        * </pre>
        *
-       * <code>required int32 blocknum = 1;</code>
+       * <code>required int32 blocknum = 2;</code>
        */
       public int getBlocknum() {
         return blocknum_;
@@ -1128,10 +1348,10 @@ public final class hdfsProto {
        *block to write to
        * </pre>
        *
-       * <code>required int32 blocknum = 1;</code>
+       * <code>required int32 blocknum = 2;</code>
        */
       public Builder setBlocknum(int value) {
-        bitField0_ |= 0x00000001;
+        bitField0_ |= 0x00000002;
         blocknum_ = value;
         onChanged();
         return this;
@@ -1141,10 +1361,10 @@ public final class hdfsProto {
        *block to write to
        * </pre>
        *
-       * <code>required int32 blocknum = 1;</code>
+       * <code>required int32 blocknum = 2;</code>
        */
       public Builder clearBlocknum() {
-        bitField0_ = (bitField0_ & ~0x00000001);
+        bitField0_ = (bitField0_ & ~0x00000002);
         blocknum_ = 0;
         onChanged();
         return this;
@@ -1156,17 +1376,17 @@ public final class hdfsProto {
        *data for block to hold
        * </pre>
        *
-       * <code>optional bytes data = 2;</code>
+       * <code>optional bytes data = 3;</code>
        */
       public boolean hasData() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
+        return ((bitField0_ & 0x00000004) == 0x00000004);
       }
       /**
        * <pre>
        *data for block to hold
        * </pre>
        *
-       * <code>optional bytes data = 2;</code>
+       * <code>optional bytes data = 3;</code>
        */
       public com.google.protobuf.ByteString getData() {
         return data_;
@@ -1176,13 +1396,13 @@ public final class hdfsProto {
        *data for block to hold
        * </pre>
        *
-       * <code>optional bytes data = 2;</code>
+       * <code>optional bytes data = 3;</code>
        */
       public Builder setData(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000004;
         data_ = value;
         onChanged();
         return this;
@@ -1192,10 +1412,10 @@ public final class hdfsProto {
        *data for block to hold
        * </pre>
        *
-       * <code>optional bytes data = 2;</code>
+       * <code>optional bytes data = 3;</code>
        */
       public Builder clearData() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000004);
         data_ = getDefaultInstance().getData();
         onChanged();
         return this;
@@ -4837,15 +5057,15 @@ public final class hdfsProto {
   static {
     java.lang.String[] descriptorData = {
       "\n\nhdfs.proto\022\004hdfs\"\037\n\013ClientQuery\022\020\n\010fil" +
-      "ename\030\001 \001(\t\"\'\n\005Block\022\020\n\010blocknum\030\001 \002(\005\022\014" +
-      "\n\004data\030\002 \001(\014\"4\n\020NameNodeResponse\022\020\n\010resp" +
-      "onse\030\001 \001(\014\022\016\n\006status\030\002 \002(\005\"4\n\020DataNodeRe" +
-      "sponse\022\020\n\010response\030\001 \001(\014\022\016\n\006status\030\002 \002(\005" +
-      "\" \n\014NameNodeData\022\020\n\010filelist\030\001 \003(\t\">\n\016Da" +
-      "taNodeBlocks\022\020\n\010filename\030\001 \002(\t\022\032\n\005block\030" +
-      "\002 \003(\0132\013.hdfs.Block\"2\n\014DataNodeData\022\"\n\004da" +
-      "ta\030\001 \003(\0132\024.hdfs.DataNodeBlocksB\024\n\007ds.hdf" +
-      "sB\thdfsProto"
+      "ename\030\001 \001(\t\"9\n\005Block\022\020\n\010filename\030\001 \002(\t\022\020" +
+      "\n\010blocknum\030\002 \002(\005\022\014\n\004data\030\003 \001(\014\"4\n\020NameNo" +
+      "deResponse\022\020\n\010response\030\001 \001(\014\022\016\n\006status\030\002" +
+      " \002(\005\"4\n\020DataNodeResponse\022\020\n\010response\030\001 \001" +
+      "(\014\022\016\n\006status\030\002 \002(\005\" \n\014NameNodeData\022\020\n\010fi" +
+      "lelist\030\001 \003(\t\">\n\016DataNodeBlocks\022\020\n\010filena" +
+      "me\030\001 \002(\t\022\032\n\005block\030\002 \003(\0132\013.hdfs.Block\"2\n\014" +
+      "DataNodeData\022\"\n\004data\030\001 \003(\0132\024.hdfs.DataNo" +
+      "deBlocksB\024\n\007ds.hdfsB\thdfsProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -4870,7 +5090,7 @@ public final class hdfsProto {
     internal_static_hdfs_Block_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_hdfs_Block_descriptor,
-        new java.lang.String[] { "Blocknum", "Data", });
+        new java.lang.String[] { "Filename", "Blocknum", "Data", });
     internal_static_hdfs_NameNodeResponse_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_hdfs_NameNodeResponse_fieldAccessorTable = new
