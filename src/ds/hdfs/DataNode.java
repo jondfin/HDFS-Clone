@@ -25,6 +25,7 @@ import ds.hdfs.hdfsProto.DataNodeBlocks;
 import ds.hdfs.hdfsProto.DataNodeData;
 import ds.hdfs.hdfsProto.DataNodeResponse;
 import ds.hdfs.hdfsProto.NameNodeData;
+import ds.hdfs.hdfsProto.NameNodeResponse;
 
 public class DataNode implements IDataNode
 {
@@ -34,8 +35,8 @@ public class DataNode implements IDataNode
     protected int MyPort;
 //    protected String MyName;
     protected int MyID;
-//    private static TimerTask heartBeat;
-//    private Timer timer;
+    private static TimerTask heartBeat;
+    private Timer timer;
     
     private static final ByteString ERROR_MSG = ByteString.copyFrom("ERROR".getBytes());
     
@@ -228,36 +229,60 @@ public class DataNode implements IDataNode
         }
         
         //Set up data nodes
-        DataNode dn = null;
         br = new BufferedReader(new FileReader("src/dn_config.txt"));
         line = br.readLine();
         while( (line = br.readLine()) != null) {
         	String parsedLine2[] = line.split(";");
-        	dn = new DataNode(Integer.parseInt(parsedLine2[0]), parsedLine2[1], Integer.parseInt(parsedLine2[2]));
+        	final DataNode dn = new DataNode(Integer.parseInt(parsedLine2[0]), parsedLine2[1], Integer.parseInt(parsedLine2[2]));
         	//Bind to data nodes to server
     		dn.BindServer(String.valueOf(dn.MyID), dn.MyIP, dn.MyPort);
     		//Schedule heartbeats
-//    		dn.heartBeat = new TimerTask() {
-//    			@Override
-//    			public void run() {
-//    				System.out.println("Sending heartbeat to " + nn.ip + ":" + nn.port);
-//    				INameNode stub = GetNNStub(nn.name, nn.ip, nn.port);
-//    				//Send blocks to Name Node
-//    				try {
-//	    				FileInputStream fis = new FileInputStream(new File(dn.MyChunksFile));
-//	    				DataNodeData blocks = DataNodeData.parseFrom(fis);
-//	    				ArrayList<Block> blockList = new ArrayList<>(blocks.getBlockList());
-//	    				for(Block b : blocks.getBlockList()) {
-//	    					
-//	    				}
-//    				}catch(FileNotFoundException e) {
-//    					e.printStackTrace();
-//    				} catch (IOException e) {
-//						e.printStackTrace();
-//					}
-//    			}
-//    		};
-//    		dn.timer.scheduleAtFixedRate(heartBeat, interval, interval);
+    		dn.heartBeat = new TimerTask() {
+    			@Override
+    			public void run() {
+    				System.out.println("Sending heartbeat to " + nn.ip + ":" + nn.port);
+    				INameNode stub = GetNNStub(nn.name, nn.ip, nn.port);
+    				//Send blocks to Name Node
+    				try {
+	    				FileInputStream fis = new FileInputStream(new File(dn.MyChunksFile));
+	    				DataNodeData storedData = DataNodeData.parseFrom(fis);
+	    				
+	    				//Get the data and serialize it
+	    				HeartBeat.Builder hb = HeartBeat.newBuilder();
+	    				String nodeInfo = dn.MyID + ";" + dn.MyIP + ";" + dn.MyPort;
+	    				hb.setNodeinfo(nodeInfo);
+	    				DataNodeData.Builder fileList = DataNodeData.newBuilder();
+	    				ArrayList<String> seenFiles = new ArrayList<>();
+	    				//Go through each data entry
+	    				for(DataNodeBlocks dnb : storedData.getDataList()) {
+	    					if(!seenFiles.contains(dnb.getFilename())) {
+	    						DataNodeBlocks.Builder blocks = DataNodeBlocks.newBuilder();
+	    						blocks.setFilename(dnb.getFilename());
+	    						for(Block b : dnb.getBlockList()) {
+	    							//Recreating the block but without the data
+	    							Block.Builder bs = Block.newBuilder();
+	    							bs.setFilename(b.getFilename());
+	    							bs.setBlocknum(b.getBlocknum());
+	    							blocks.addBlock(bs);
+	    						}
+	    						fileList.addData(blocks);
+		    					seenFiles.add(dnb.getFilename());
+	    					}
+	    				}
+	    				hb.setData(fileList());
+	    				NameNodeResponse nnr = NameNodeResponse.parseFrom(stub.heartBeat(hb.build().toByteArray()));
+	    				if(nnr.getStatus() == -1) {
+	    					System.out.println("Namenode had an error processing the heartbeat");
+	    					return;
+	    				}
+    				}catch(FileNotFoundException e) {
+    					e.printStackTrace();
+    				} catch (IOException e) {
+						e.printStackTrace();
+					}
+    			}
+    		};
+    		dn.timer.scheduleAtFixedRate(heartBeat, interval, interval);
         }
         br.close();
     }

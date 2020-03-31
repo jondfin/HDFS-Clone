@@ -51,3 +51,7 @@ message DataNodeBlocks{
 message DataNodeData{
 	repeated DataNodeBlocks data = 1;
 }
+
+message HeartBeat{
+	required string nodeinfo = //contains the data node info (id;ip;port)
+	required DataNodeData data = 2; //contains the filenames and blocks

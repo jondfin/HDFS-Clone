@@ -30,7 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import ds.hdfs.hdfsProto.Block;
 import ds.hdfs.hdfsProto.ClientQuery;
+import ds.hdfs.hdfsProto.DataNodeBlocks;
+import ds.hdfs.hdfsProto.DataNodeData;
 import ds.hdfs.hdfsProto.DataNodeResponse;
 import ds.hdfs.hdfsProto.NameNodeData;
 import ds.hdfs.hdfsProto.NameNodeResponse;
@@ -88,6 +91,7 @@ public class NameNode implements INameNode{
 //		int filehandle;
 //		boolean writemode;
 		ArrayList<Integer> Chunks;
+		ArrayList<DataNode> dataNodes;
 		
 //		public FileInfo(String name, int handle, boolean option)
 		public FileInfo(String name)
@@ -95,7 +99,8 @@ public class NameNode implements INameNode{
 			this.filename = name;
 //			filehandle = handle;
 //			writemode = option;
-			this.Chunks = new ArrayList<Integer>();
+			this.Chunks = new ArrayList<>();
+			this.dataNodes = new ArrayList<>();
 		}
 	}
 	
@@ -184,7 +189,7 @@ public class NameNode implements INameNode{
 			if(count < f.Chunks.size() - 1) blockLocations = blockLocations.concat(",");
 			count++;
 		}
-		String msg = dataNodes.get(0).toString() + ";" + blockLocations;
+		String msg = dataNodes.get(0).toString() + ";" + blockLocations; //TODO get real location
 		response.setResponse(ByteString.copyFrom(msg.getBytes()));
 		response.setStatus(1); //OK
 		
@@ -273,7 +278,10 @@ public class NameNode implements INameNode{
 	 * blockReport() is unimplemented since all the info is contained within the heartbeat
 	 */
 	
-
+	
+	/**
+	 * Unused
+	 */
 	public byte[] blockReport(byte[] inp ) throws RemoteException
 	{
 		return null;
@@ -289,9 +297,42 @@ public class NameNode implements INameNode{
 //		return response.build().toByteArray();
 	}
 	
+	/**
+	 * Receives a filename, the datanode containing it, and the blocks associated with it
+	 */
 	public byte[] heartBeat(byte[] inp ) throws RemoteException
 	{
 		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
+		//Deserialize input
+		try {
+			HeartBeat hb = HeartBeat.parseFrom(inp);
+			//id, ip, port
+			String dnInfo[] = hb.getNodeinfo().split(";");
+			//Make a temporary list
+			ArrayList<FileInfo> received = new ArrayList<>();
+			for(DataNodeBlocks dnb : files.getDataList()) {
+				//Construct a new fileinfo object
+				FileInfo fi = new FileInfo(dnb.getFilename());
+				fi.dataNodes.add(new DataNode(dnInfo[1], Integer.valueOf(dnInfo[2]), dnInfo[0]));
+				for(Block b : dnb.getBlockList()) {
+					fi.Chunks.add(Integer.valueOf(b.getBlocknum()));
+				}
+				received.add(fi);
+			}
+			//Done reading
+			for(FileInfo newFile : received) {
+				for(FileInfo oldFile : fileList) {
+					if(oldFile.filename.equals(newFile.filename)) {
+						oldFile = newFile; //swap old with new
+					}
+				}
+			}
+			response.setStatus(1); //OK
+		} catch (InvalidProtocolBufferException e) {
+			e.printStackTrace();
+			response.setStatus(-1);
+			return response.build().toByteArray();
+		}
 		
 		return response.build().toByteArray();
 	}
