@@ -53,5 +53,6 @@ message DataNodeData{
 }
 
 message HeartBeat{
-	required string nodeinfo = //contains the data node info (id;ip;port)
+	required string nodeinfo = 1; //contains the data node info (id;ip;port)
 	required DataNodeData data = 2; //contains the filenames and blocks
+}
