@@ -2524,15 +2524,15 @@ public final class hdfsProto {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>required string filename = 1;</code>
+     * <code>optional string filename = 1;</code>
      */
     boolean hasFilename();
     /**
-     * <code>required string filename = 1;</code>
+     * <code>optional string filename = 1;</code>
      */
     java.lang.String getFilename();
     /**
-     * <code>required string filename = 1;</code>
+     * <code>optional string filename = 1;</code>
      */
     com.google.protobuf.ByteString
         getFilenameBytes();
@@ -2655,13 +2655,13 @@ public final class hdfsProto {
     public static final int FILENAME_FIELD_NUMBER = 1;
     private volatile java.lang.Object filename_;
     /**
-     * <code>required string filename = 1;</code>
+     * <code>optional string filename = 1;</code>
      */
     public boolean hasFilename() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required string filename = 1;</code>
+     * <code>optional string filename = 1;</code>
      */
     public java.lang.String getFilename() {
       java.lang.Object ref = filename_;
@@ -2678,7 +2678,7 @@ public final class hdfsProto {
       }
     }
     /**
-     * <code>required string filename = 1;</code>
+     * <code>optional string filename = 1;</code>
      */
     public com.google.protobuf.ByteString
         getFilenameBytes() {
@@ -2735,10 +2735,6 @@ public final class hdfsProto {
       if (isInitialized == 1) return true;
       if (isInitialized == 0) return false;
 
-      if (!hasFilename()) {
-        memoizedIsInitialized = 0;
-        return false;
-      }
       for (int i = 0; i < getBlockCount(); i++) {
         if (!getBlock(i).isInitialized()) {
           memoizedIsInitialized = 0;
@@ -3062,9 +3058,6 @@ public final class hdfsProto {
       }
 
       public final boolean isInitialized() {
-        if (!hasFilename()) {
-          return false;
-        }
         for (int i = 0; i < getBlockCount(); i++) {
           if (!getBlock(i).isInitialized()) {
             return false;
@@ -3094,13 +3087,13 @@ public final class hdfsProto {
 
       private java.lang.Object filename_ = "";
       /**
-       * <code>required string filename = 1;</code>
+       * <code>optional string filename = 1;</code>
        */
       public boolean hasFilename() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required string filename = 1;</code>
+       * <code>optional string filename = 1;</code>
        */
       public java.lang.String getFilename() {
         java.lang.Object ref = filename_;
@@ -3117,7 +3110,7 @@ public final class hdfsProto {
         }
       }
       /**
-       * <code>required string filename = 1;</code>
+       * <code>optional string filename = 1;</code>
        */
       public com.google.protobuf.ByteString
           getFilenameBytes() {
@@ -3133,7 +3126,7 @@ public final class hdfsProto {
         }
       }
       /**
-       * <code>required string filename = 1;</code>
+       * <code>optional string filename = 1;</code>
        */
       public Builder setFilename(
           java.lang.String value) {
@@ -3146,7 +3139,7 @@ public final class hdfsProto {
         return this;
       }
       /**
-       * <code>required string filename = 1;</code>
+       * <code>optional string filename = 1;</code>
        */
       public Builder clearFilename() {
         bitField0_ = (bitField0_ & ~0x00000001);
@@ -3155,7 +3148,7 @@ public final class hdfsProto {
         return this;
       }
       /**
-       * <code>required string filename = 1;</code>
+       * <code>optional string filename = 1;</code>
        */
       public Builder setFilenameBytes(
           com.google.protobuf.ByteString value) {
@@ -5141,7 +5134,7 @@ public final class hdfsProto {
       "\n\004data\030\002 \001(\014\"4\n\020NameNodeResponse\022\020\n\010resp" +
       "onse\030\001 \001(\014\022\016\n\006status\030\002 \002(\005\"4\n\020DataNodeRe" +
       "sponse\022\020\n\010response\030\001 \001(\014\022\016\n\006status\030\002 \002(\005" +
-      "\":\n\nNodeBlocks\022\020\n\010filename\030\001 \002(\t\022\032\n\005bloc" +
+      "\":\n\nNodeBlocks\022\020\n\010filename\030\001 \001(\t\022\032\n\005bloc" +
       "k\030\002 \003(\0132\013.hdfs.Block\"*\n\010NodeData\022\036\n\004data" +
       "\030\001 \003(\0132\020.hdfs.NodeBlocks\";\n\tHeartBeat\022\020\n" +
       "\010nodeinfo\030\001 \002(\t\022\034\n\004data\030\002 \002(\0132\016.hdfs.Nod" +
