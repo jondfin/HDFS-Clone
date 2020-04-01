@@ -1,42 +1,23 @@
 package ds.hdfs;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.UnknownHostException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.TimeUnit;
 
-import ds.hdfs.hdfsProto.Block;
 import ds.hdfs.hdfsProto.ClientQuery;
 import ds.hdfs.hdfsProto.DataNodeBlocks;
-import ds.hdfs.hdfsProto.DataNodeData;
 import ds.hdfs.hdfsProto.DataNodeResponse;
 import ds.hdfs.hdfsProto.HeartBeat;
 import ds.hdfs.hdfsProto.NameNodeData;
@@ -51,8 +32,6 @@ public class NameNode implements INameNode{
 	//Keep track of what blocks are being used
 	private static BitSet bitset = new BitSet(Integer.MAX_VALUE); //might be too big 
 	private static ArrayList<DataNode> dataNodes = new ArrayList<>();
-	
-	private static final ByteString ERROR_MSG = ByteString.copyFrom("ERROR".getBytes());
 	
 	private static int timeout = 10000;  //Measured in milliseconds. Default 10 seconds
 	
@@ -94,16 +73,11 @@ public class NameNode implements INameNode{
 	public static class FileInfo
 	{
 		String filename;
-//		int filehandle;
-//		boolean writemode;
 		ArrayList<Integer> Chunks;
 		
-//		public FileInfo(String name, int handle, boolean option)
 		public FileInfo(String name)
 		{
 			this.filename = name;
-//			filehandle = handle;
-//			writemode = option;
 			this.Chunks = new ArrayList<>();
 		}
 	}
@@ -125,29 +99,48 @@ public class NameNode implements INameNode{
 		return null;
 	}
 	
+	/**
+	 * Checks the file list to see if the file can be added
+	 * Returns -1 if unavailable, or n blocks if available
+	 */
 	public byte[] openFile(byte[] inp) throws RemoteException
 	{
 		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
-		try
-		{
-		}
-		catch (Exception e) 
-		{
-			System.err.println("Error at " + this.getClass() + e.toString());
+		//Deserialize client message
+		ClientQuery query;
+		try {
+			query = ClientQuery.parseFrom(inp);
+		} catch (InvalidProtocolBufferException e) {
+			System.out.println("Error parsing client query");
 			e.printStackTrace();
-			response.setStatus(-1);
+    		response.setStatus(-1);
+    		return response.build().toByteArray();
+		}
+		String filename = query.getFilename();
+		//The number of available blocks
+		int available = bitset.length();
+		//Check if file exists
+		FileInfo f = findInFilelist(filename);
+		if(f == null) {
+			System.out.println("File does not exist in HDFS!");
+			response.setStatus(available); //OK
+			return response.build().toByteArray();
 		}
 		return response.build().toByteArray();
 	}
 	
+	/**
+	 * This acts as confirmation that the file was successfully written to HDFS
+	 * Once this is called, the NNMD.txt file is updated with the most recent list of files
+	 * and the nodes that hold a set of blocks
+	 */
 	public byte[] closeFile(byte[] inp ) throws RemoteException
 	{
 		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
-		try
-		{
-		}
-		catch(Exception e)
-		{
+		try{
+			NameNodeData.Builder n = NameNodeData.newBuilder();
+			FileOutputStream fos = new FileOutputStream("src/NNMD.txt");
+		}catch(Exception e){
 			System.err.println("Error at closefileRequest " + e.toString());
 			e.printStackTrace();
 			response.setStatus(-1);
@@ -157,7 +150,8 @@ public class NameNode implements INameNode{
 	}
 	/**
 	 * Input is a byte array that contains the filename
-	 * Returns 1 and block locations if the file exists, 0 if the file does not exist, -1 for error
+	 * This assumes that the file is in HDFS already
+	 * Returns 1 and block locations if the file exists, -1 for error
 	 */
 	public byte[] getBlockLocations(byte[] inp ) throws RemoteException
 	{
@@ -170,21 +164,12 @@ public class NameNode implements INameNode{
 		} catch (InvalidProtocolBufferException e) {
 			System.out.println("Error parsing client query");
 			e.printStackTrace();
-			response.setResponse(ERROR_MSG);
     		response.setStatus(-1);
     		return response.build().toByteArray();
 		}
+		//Return requested block locations
 		String filename = query.getFilename();
-		
-		//Check if file exists
-		FileInfo f = findInFilelist(filename);
-		if(f == null) {
-			System.out.println("File does not exist in HDFS!");
-			response.setStatus(0); //OK if the client wants to PUT file
-			return response.build().toByteArray();
-		}
-		
-		//File exists, can return block locations
+		FileInfo f = new FileInfo(filename);
 		String blockLocations = "";
 		ArrayList<Integer> blocks = new ArrayList<>();
 		int count = 0;
@@ -204,7 +189,6 @@ public class NameNode implements INameNode{
 			}
 		}
 		System.out.println("DataNode containing " + filename + " is down!");
-		response.setResponse(ERROR_MSG);
 		response.setStatus(-1);
 		return response.build().toByteArray();
 	}
@@ -223,66 +207,55 @@ public class NameNode implements INameNode{
 			int available = bitset.nextClearBit(0);
 			if(bitset.cardinality() == Integer.MAX_VALUE) {
 				System.out.println("Error assigning blocks: No more blocks left!");
-				response.setResponse(ERROR_MSG);
 				response.setStatus(-1);
 				return response.build().toByteArray();
 			}
 			//Block is available, map it and send it to client
-			//TODO remove since this is used for appending data
-			boolean found = false;
 			String filename = query.getFilename();
-			for(FileInfo f : fileList) {
-				if(f.filename.equals(filename)) {
-					//Mark chunk as taken and add it to the file's chunklist
-					bitset.set(available);
-					f.Chunks.add(Integer.valueOf(available));
-					found = true;
-					break;
-				}
-			}
-			if(found == false) {
-				System.out.println("Adding new file: " + filename);
-				FileInfo newFile = new FileInfo(filename);
-				//Mark chunk as taken and add it to the file's chunklist
-				bitset.set(available);
-				newFile.Chunks.add(Integer.valueOf(available));
-				fileList.add(newFile);
-			}
+			FileInfo newFile = new FileInfo(filename);
+			//Mark chunk as taken and add it to the file's chunklist
+			bitset.set(available);
+			newFile.Chunks.add(Integer.valueOf(available));
+			fileList.add(newFile);
 			//Contains the block number to write and the data node holding that block
-			String s = available + ";" + dataNodes.get(0).toString(); //TODO replication factor and choosing a different data node
+			String s = available + ";" + dataNodes.get(0).toString();
 			response.setResponse(ByteString.copyFrom(s.getBytes()));
 			response.setStatus(1);
-			System.out.println("Assigned block " + available + " to " + filename);
 		} catch (InvalidProtocolBufferException e) {
 			System.out.println("Error assigning blocks: InvalidProtocolBufferException");
 			e.printStackTrace();
-			response.setResponse(ERROR_MSG);
 			response.setStatus(-1);
 			return response.build().toByteArray();
 		}
 		
 		return response.build().toByteArray();
 	}
-		
+	
+	/**
+	 * Input not needed, just returns the list of available files
+	 */
 	public byte[] list(byte[] inp ) throws RemoteException
 	{
 		NameNodeResponse.Builder response = NameNodeResponse.newBuilder();
 		
 		try{
-			String list = "";
+			ArrayList<String> list = new ArrayList<>();
 			//Go through file list
-			for(FileInfo f : fileList) {
+			Iterator<FileInfo> it = fileList.iterator();
+			while(it.hasNext()) {
 				//Check if node is up and has blocks
+				FileInfo f = it.next();
 				for(DataNode d : dataNodes) {
-					if(d.alive && d.blocks.containsAll(f.Chunks)) list = list.concat(f.filename + " ");
+					if(d.alive && !list.contains(f.filename) && d.blocks.containsAll(f.Chunks)) list.add(f.filename);
 				}
 			}
-			response.setResponse(ByteString.copyFrom(list.getBytes()));
+			String ret = "";
+			for(String s : list) ret = ret.concat(s) + " ";
+			response.setResponse(ByteString.copyFrom(ret.getBytes()));
 			response.setStatus(1);
 		}catch(Exception e){
 			System.err.println("Error at list "+ e.toString());
 			e.printStackTrace();
-			response.setResponse(ERROR_MSG);
 			response.setStatus(-1);
 		}
 		return response.build().toByteArray();
@@ -404,7 +377,7 @@ public class NameNode implements INameNode{
 			System.out.println("--------------------------");
 			for(DataNode dn : dataNodes) {
 				System.out.println(d.serverName + " : " + dn.ip + ":" + dn.port);
-				System.out.println("\tBlocks:" + dn.blocks.get(0) + "-" + dn.blocks.get(dn.blocks.size()-1));
+				if(dn.blocks.isEmpty() == false) System.out.println("\tBlocks:" + dn.blocks.get(0) + "-" + dn.blocks.get(dn.blocks.size()-1));
 			}
 		} catch (InvalidProtocolBufferException e) {
 			e.printStackTrace();
@@ -429,12 +402,11 @@ public class NameNode implements INameNode{
 		}
 		String line = br.readLine(); //ignore first line
 		line = br.readLine(); //ignore block size
-		while( (line = br.readLine()) != null) { //TODO loop not needed
-			String parsedLine[] = line.split(";");
-			//Create new name node
-			nn = new NameNode(parsedLine[1], Integer.parseInt(parsedLine[2]), parsedLine[0]);
-			System.out.println("Created Name Node: \n\t" + parsedLine[0] + ": " + parsedLine[1] + " Port = " + Integer.parseInt(parsedLine[2]));
-		}
+		line = br.readLine(); 
+		String parsedLine[] = line.split(";");
+		//Create new name node
+		nn = new NameNode(parsedLine[1], Integer.parseInt(parsedLine[2]), parsedLine[0]);
+		System.out.println("Created Name Node: \n\t" + parsedLine[0] + ": " + parsedLine[1] + " Port = " + Integer.parseInt(parsedLine[2]));
 		br.close();
 		
 		//TODO probably dont need this since the MD should be reconstructed through blockReports
@@ -450,8 +422,8 @@ public class NameNode implements INameNode{
 		}
         line = br.readLine();
         while( (line = br.readLine()) != null) {
-        	String parsedLine[] = line.split(";");
-        	dataNodes.add(new DataNode(parsedLine[1], Integer.parseInt(parsedLine[2]), parsedLine[0]));
+        	String parsedLine2[] = line.split(";");
+        	dataNodes.add(new DataNode(parsedLine2[1], Integer.parseInt(parsedLine2[2]), parsedLine2[0]));
         }
         br.close();
 		

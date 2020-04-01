@@ -12,9 +12,8 @@ message ClientQuery{
 
 //Used to send blocks to/from Data Nodes
 message Block{
-	required string filename = 1; //name of file
-	required int32 blocknum = 2; //block to write to
-	optional bytes data = 3; //data for block to hold
+	required int32 blocknum = 1; //block to write to
+	optional bytes data = 2; //data for block to hold
 }
 
 /*
@@ -35,24 +34,19 @@ message DataNodeResponse{
 	required int32 status = 2; //-1 for error otherwise good
 }
 
-//Persist data in the name node
-message NameNodeData{
-	repeated string filelist = 1; 
-}
-
 //Keep track of files and their blocks when persisting the data
-message DataNodeBlocks{
+message NodeBlocks{
 	required string filename = 1;
 	repeated Block block = 2;
 }
 
 //Persisted data is stored as a list of files and their data
 //So file1:block1{data}, block2{data},...
-message DataNodeData{
-	repeated DataNodeBlocks data = 1;
+message NodeData{
+	repeated NodeBlocks data = 1;
 }
 
 message HeartBeat{
 	required string nodeinfo = 1; //contains the data node info (id;ip;port)
-	required DataNodeData data = 2; //contains the filenames and blocks
+	required NodeData data = 2; //contains the filenames and blocks
 }

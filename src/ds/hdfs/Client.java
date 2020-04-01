@@ -22,8 +22,6 @@ public class Client
 {
 	private static long blockSize = 64;
 	
-	private static final ByteString ERROR_MSG = ByteString.copyFrom("NULL".getBytes());//TODO temp
-	
     //Variables Required
     public INameNode NNStub; //Name Node stub
     public IDataNode DNStub; //Data Node stub
@@ -55,7 +53,7 @@ public class Client
     {
         while(true)
         {
-        	System.out.println("Looking for " + Name + " at " + IP + ":" + Port);
+//        	System.out.println("Looking for " + Name + " at " + IP + ":" + Port);
             try{
                 Registry registry = LocateRegistry.getRegistry(IP, Port);
                 IDataNode stub = (IDataNode) registry.lookup(Name);
@@ -100,29 +98,37 @@ public class Client
      */
     public void PutFile(String Filename) //Put File
     {
-    	System.out.println("Going to put file " + Filename);
     	File f = new File(Filename);
     	if(!f.exists()) {
     		System.out.println("File does not exist locally");
+    		return;
+    	}else if(f.length() == 0) {
+    		System.out.println("Cannot put an empty file into HDFS");
     		return;
     	}
     	try {
     		//Ask Name Node to put file
         	ClientQuery.Builder cq = ClientQuery.newBuilder();
-        	cq.setFilename(Filename);
+        	cq.setFilename(f.getName());
 			NameNodeResponse blockLocations = NameNodeResponse.parseFrom(NNStub.getBlockLocations(cq.build().toByteArray()));
 			if(blockLocations.getStatus() == 0) {
 				System.out.println("OK from server...Reading bytes from file");
+				//Keep track of blocks written to file
+				ClientQuery.Builder open = ClientQuery.newBuilder();
+				open.setFilename(f.getName());
+				NameNodeResponse openResp = NameNodeResponse.parseFrom(NNStub.openFile(open.build().toByteArray()));
+				//Check if there is space in HDFS
+				if((f.length() / blockSize) > openResp.getStatus()) {
+					System.out.println("Unable to put " + Filename + " into HDFS");
+					return;
+				}
 				//Start reading bytes from file
 				BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
 				int bytesRead = 0;
-				boolean write = false;
 				byte buffer[] = new byte[(int)blockSize];
-				while( (bytesRead = bis.read(buffer)) > 0) { //TODO check if file is empty
-					write = true;
-					System.out.println("Read " + bytesRead + " bytes");
+				while( (bytesRead = bis.read(buffer)) > 0) {
 					cq = ClientQuery.newBuilder();
-					cq.setFilename(Filename);
+					cq.setFilename(f.getName());
 					//Get block from Name Node
 					NameNodeResponse nameNodeBlockResponse = NameNodeResponse.parseFrom(NNStub.assignBlock(cq.build().toByteArray()));
 					if(nameNodeBlockResponse.getStatus() == -1) {
@@ -140,7 +146,7 @@ public class Client
 					
 					//Write block to Data Node
 					Block.Builder b = Block.newBuilder();
-					b.setFilename(Filename);
+					b.setFilename(f.getName());
 					b.setBlocknum(blockNum);
 					b.setData(ByteString.copyFrom(buffer));
 					DataNodeResponse response = DataNodeResponse.parseFrom(DNStub.writeBlock(b.build().toByteArray()));
@@ -153,15 +159,17 @@ public class Client
 					//Make sure buffer is emptied out
 					Arrays.fill(buffer, (byte)0);				
 				}
-				if(write == false) {
-					System.out.println("Cannot put empty file in HDFS");
-					bis.close();
+				bis.close();
+				//Have the name node commit meta data to disk
+				ClientQuery.Builder close = ClientQuery.newBuilder();
+				close.setFilename(f.getName());
+				NameNodeResponse closeResp = NameNodeResponse.parseFrom(close.build().toByteArray());
+				if(closeResp.getStatus() == -1) {
+					System.out.println("Error: Could not put " + Filename + " into HDFS");
 					return;
 				}
-				System.out.println("Successfully written " + Filename + " to HDFS");
-				bis.close();
 			}else {
-				System.out.println("File already exists!");
+				System.out.println("File already exists in HDFS!");
 				return;
 			}
 		} catch (RemoteException e) {
@@ -190,8 +198,6 @@ public class Client
      */
     public void GetFile(String Filename)
     {
-	    System.out.println("Going to get file " + Filename);
-	    
 	    //Create query
 	    ClientQuery.Builder cq = ClientQuery.newBuilder();
 	    cq.setFilename(Filename);
@@ -225,7 +231,6 @@ public class Client
 	    		Block.Builder block = Block.newBuilder();
 	    		block.setFilename(Filename);
 	    		block.setBlocknum(Integer.parseInt(blockNum));
-	    		block.setData(ERROR_MSG);
 	    		DataNodeResponse data = DataNodeResponse.parseFrom(DNStub.readBlock(block.build().toByteArray()));
 	    		if(data.getStatus() == -1) {
 	    			System.out.println("Error: Could not retrieve block from Data Node");
@@ -235,7 +240,6 @@ public class Client
 	    		}
 	    		fos.write(data.getResponse().toStringUtf8().getBytes());
 	    	}
-	    	System.out.println("Successfully retrieved " + Filename + " from HDFS");
 	    	fos.close();
 	    }catch(RemoteException e) {
 	    	System.out.println("Error retrieving file from HDFS: RemoteException");
@@ -258,10 +262,10 @@ public class Client
      */
     public void List()
     {
-    	System.out.println("Getting file list");
     	try {
 			NameNodeResponse files = NameNodeResponse.parseFrom(NNStub.list(null));
-			System.out.println(files.getResponse().toStringUtf8().trim());
+			String resp = files.getResponse().toStringUtf8().trim();
+			if(!resp.isEmpty())	System.out.println(files.getResponse().toStringUtf8().trim());
 		} catch (RemoteException e) {
 			System.out.println("Error getting file list: RemoteException");
 			e.printStackTrace();
@@ -319,7 +323,6 @@ public class Client
             }
             else if(Split_Commands[0].equals("list"))
             {
-                System.out.println("List request");
                 //Get list of files in HDFS
                 Me.List();
             }

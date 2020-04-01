@@ -18,14 +18,11 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import java.io.*;
 import java.nio.charset.Charset;
 
-import ds.hdfs.IDataNode.*;
 import ds.hdfs.hdfsProto.Block;
-import ds.hdfs.hdfsProto.ClientQuery;
 import ds.hdfs.hdfsProto.DataNodeBlocks;
 import ds.hdfs.hdfsProto.DataNodeData;
 import ds.hdfs.hdfsProto.DataNodeResponse;
 import ds.hdfs.hdfsProto.HeartBeat;
-import ds.hdfs.hdfsProto.NameNodeData;
 import ds.hdfs.hdfsProto.NameNodeResponse;
 
 public class DataNode implements IDataNode
@@ -34,12 +31,10 @@ public class DataNode implements IDataNode
     protected INameNode NNStub;
     protected String MyIP;
     protected int MyPort;
-//    protected String MyName;
     protected int MyID;
     private static TimerTask heartBeat;
     private Timer timer;
     
-    private static final ByteString ERROR_MSG = ByteString.copyFrom("ERROR".getBytes());
     private static ArrayList<DataNode> dataNodes = new ArrayList<>(); //List of datanodes, used for replication
     
     private static int interval = 5000; //Measured in milliseconds. Default 5 seconds
@@ -66,14 +61,11 @@ public class DataNode implements IDataNode
     	}catch(InvalidProtocolBufferException e) {
     		System.out.println("Error parsing client query in readBlock");
     		e.printStackTrace();
-    		response.setResponse(ERROR_MSG);
     		response.setStatus(-1);
     		return response.build().toByteArray();
     	}
     	int blockNum = requestedBlock.getBlocknum();
     	String filename = requestedBlock.getFilename();
-    	
-    	System.out.println("Client requested block " + blockNum);
     	
     	//Open chunk file to read data
     	try {
@@ -97,17 +89,14 @@ public class DataNode implements IDataNode
 			}
     		fis.close();
     		System.out.println("Could not find block " + blockNum);
-    		response.setResponse(ERROR_MSG);
     		response.setStatus(-1);
             return response.build().toByteArray();
     	}catch(FileNotFoundException e) {
     		System.out.println("Could not find " + this.MyChunksFile);
-    		response.setResponse(ERROR_MSG);
     		response.setStatus(-1);
     		return response.build().toByteArray();
     	} catch (IOException e) {
     		System.out.println("Could not read block: IOException");
-    		response.setResponse(ERROR_MSG);
     		response.setStatus(-1);
     		return response.build().toByteArray();
 		}
@@ -127,13 +116,10 @@ public class DataNode implements IDataNode
     	}catch(InvalidProtocolBufferException e) {
     		System.out.println("Error parsing client query in writeBlock");
     		e.printStackTrace();
-    		response.setResponse(ERROR_MSG);
     		response.setStatus(-1);
     		return response.build().toByteArray();
     	}
 
-    	System.out.println(blockToWrite.getData().toStringUtf8());
-    	
     	//Serialize data
     	DataNodeBlocks.Builder block = DataNodeBlocks.newBuilder();
     	block.setFilename(blockToWrite.getFilename());
@@ -151,13 +137,11 @@ public class DataNode implements IDataNode
     	}catch(Exception e) {
     		System.out.println("Error writing file in Data Node");
     		e.printStackTrace();
-    		response.setResponse(ERROR_MSG);
     		response.setStatus(-1);
     		return response.build().toByteArray();
     	}
     	
     	//Let the client know that bytes were succesfully written
-//    	response.setResponse(ERROR_MSG);
     	response.setStatus(1);
         return response.build().toByteArray();
     }
@@ -236,6 +220,9 @@ public class DataNode implements IDataNode
         while( (line = br.readLine()) != null) {
         	String parsedLine2[] = line.split(";");
         	final DataNode dn = new DataNode(Integer.parseInt(parsedLine2[0]), parsedLine2[1], Integer.parseInt(parsedLine2[2]));
+        	//Get chunk file
+        	File chunkFile = new File(dn.MyChunksFile);
+        	if(chunkFile.exists() == false) chunkFile.createNewFile();
         	//Bind to data nodes to server
     		dn.BindServer(String.valueOf(dn.MyID), dn.MyIP, dn.MyPort);
     		//Schedule heartbeats
@@ -246,39 +233,49 @@ public class DataNode implements IDataNode
     				INameNode stub = GetNNStub(nn.name, nn.ip, nn.port);
     				//Send blocks to Name Node
     				try {
-	    				FileInputStream fis = new FileInputStream(new File(dn.MyChunksFile));
-	    				DataNodeData storedData = DataNodeData.parseFrom(fis);
-	    				
-	    				//Get the data and serialize it
-	    				HeartBeat.Builder hb = HeartBeat.newBuilder();
-	    				String nodeInfo = dn.MyID + ";" + dn.MyIP + ";" + dn.MyPort;
-	    				hb.setNodeinfo(nodeInfo);
-	    				DataNodeData.Builder fileList = DataNodeData.newBuilder();
-//	    				ArrayList<String> seenFiles = new ArrayList<>();
-	    				//Go through each data entry
-	    				for(DataNodeBlocks dnb : storedData.getDataList()) {
-//	    					System.out.println("At " + dnb.getFilename());
-//	    					if(!seenFiles.contains(dnb.getFilename())) {
-    						DataNodeBlocks.Builder blocks = DataNodeBlocks.newBuilder();
-    						blocks.setFilename(dnb.getFilename());
-    						for(Block b : dnb.getBlockList()) {
-    							//Recreating the block but without the data
-    							Block.Builder bs = Block.newBuilder();
-//	    							System.out.println("adding block " + b.getBlocknum());
-    							bs.setFilename(b.getFilename());
-    							bs.setBlocknum(b.getBlocknum());
-    							blocks.addBlock(bs);
-    						}
-    						fileList.addData(blocks);
-//		    					seenFiles.add(dnb.getFilename());
-//	    					}
-	    				}
-	    				hb.setData(fileList);
-	    				NameNodeResponse nnr = NameNodeResponse.parseFrom(stub.heartBeat(hb.build().toByteArray()));
-	    				if(nnr.getStatus() == -1) {
-	    					System.out.println("Namenode had an error processing the heartbeat");
-	    					return;
-	    				}
+    					//Get chunk file
+    		        	File chunkFile = new File(dn.MyChunksFile);
+    		        	if(chunkFile.exists() == false) chunkFile.createNewFile();
+    		        	if(chunkFile.length() != 0) {
+		    				FileInputStream fis = new FileInputStream(chunkFile);
+		    				DataNodeData storedData = DataNodeData.parseFrom(fis);
+		    				
+		    				//Get the data and serialize it
+		    				HeartBeat.Builder hb = HeartBeat.newBuilder();
+		    				String nodeInfo = dn.MyID + ";" + dn.MyIP + ";" + dn.MyPort;
+		    				hb.setNodeinfo(nodeInfo);
+		    				DataNodeData.Builder fileList = DataNodeData.newBuilder();
+		    				//Go through each data entry
+		    				for(DataNodeBlocks dnb : storedData.getDataList()) {
+	    						DataNodeBlocks.Builder blocks = DataNodeBlocks.newBuilder();
+	    						blocks.setFilename(dnb.getFilename());
+	    						for(Block b : dnb.getBlockList()) {
+	    							//Recreating the block but without the data
+	    							Block.Builder bs = Block.newBuilder();
+	    							bs.setFilename(b.getFilename());
+	    							bs.setBlocknum(b.getBlocknum());
+	    							blocks.addBlock(bs);
+	    						}
+	    						fileList.addData(blocks);
+		    				}
+		    				fis.close();
+		    				hb.setData(fileList);
+		    				NameNodeResponse nnr = NameNodeResponse.parseFrom(stub.heartBeat(hb.build().toByteArray()));
+		    				if(nnr.getStatus() == -1) {
+		    					System.out.println("Namenode had an error processing the heartbeat");
+		    					return;
+		    				}
+    		        	}else {
+		    				HeartBeat.Builder hb = HeartBeat.newBuilder();
+		    				String nodeInfo = dn.MyID + ";" + dn.MyIP + ";" + dn.MyPort;
+		    				hb.setNodeinfo(nodeInfo);
+		    				hb.setData(DataNodeData.newBuilder());
+		    				NameNodeResponse nnr = NameNodeResponse.parseFrom(stub.heartBeat(hb.build().toByteArray()));
+		    				if(nnr.getStatus() == -1) {
+		    					System.out.println("Namenode had an error processing the heartbeat");
+		    					return;
+		    				}
+    		        	}
     				}catch(FileNotFoundException e) {
     					e.printStackTrace();
     				} catch (IOException e) {
