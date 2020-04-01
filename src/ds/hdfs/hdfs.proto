@@ -36,7 +36,7 @@ message DataNodeResponse{
 
 //Keep track of files and their blocks when persisting the data
 message NodeBlocks{
-	required string filename = 1;
+	optional string filename = 1;
 	repeated Block block = 2;
 }
 

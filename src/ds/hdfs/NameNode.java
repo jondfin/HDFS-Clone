@@ -1,6 +1,7 @@
 package ds.hdfs;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -16,11 +17,12 @@ import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import ds.hdfs.hdfsProto.Block;
 import ds.hdfs.hdfsProto.ClientQuery;
-import ds.hdfs.hdfsProto.DataNodeBlocks;
+import ds.hdfs.hdfsProto.NodeBlocks;
 import ds.hdfs.hdfsProto.DataNodeResponse;
 import ds.hdfs.hdfsProto.HeartBeat;
-import ds.hdfs.hdfsProto.NameNodeData;
+import ds.hdfs.hdfsProto.NodeData;
 import ds.hdfs.hdfsProto.NameNodeResponse;
 
 import com.google.protobuf.*;
@@ -118,7 +120,7 @@ public class NameNode implements INameNode{
 		}
 		String filename = query.getFilename();
 		//The number of available blocks
-		int available = bitset.length();
+		int available = Integer.MAX_VALUE - bitset.cardinality(); //length of set - #set bits = #unset bits
 		//Check if file exists
 		FileInfo f = findInFilelist(filename);
 		if(f == null) {
@@ -137,9 +139,24 @@ public class NameNode implements INameNode{
 	public byte[] closeFile(byte[] inp ) throws RemoteException
 	{
 		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
-		try{
-			NameNodeData.Builder n = NameNodeData.newBuilder();
+		try {
+			//Deserialize client query
+			ClientQuery cq = ClientQuery.parseFrom(inp);
+			NodeData.Builder all = NodeData.newBuilder();
+			for(FileInfo f : fileList) {
+				NodeBlocks.Builder n = NodeBlocks.newBuilder();
+				n.setFilename(cq.getFilename());
+				for(Integer i : f.Chunks) {
+					Block.Builder b = Block.newBuilder();
+					b.setBlocknum(i);
+					n.addBlock(b);
+				}
+				all.addData(n);
+			}
 			FileOutputStream fos = new FileOutputStream("src/NNMD.txt");
+			fos.write(all.build().toByteArray());
+			fos.close();
+			response.setStatus(1);//All data written
 		}catch(Exception e){
 			System.err.println("Error at closefileRequest " + e.toString());
 			e.printStackTrace();
@@ -302,7 +319,7 @@ public class NameNode implements INameNode{
 			System.out.println("\nReceived heartbeat from " + dnInfo[1] + ":" + dnInfo[2]);
 			//Make a temporary list to hold all blocks
 			ArrayList<FileInfo> received = new ArrayList<>();
-			for(DataNodeBlocks dnb : hb.getData().getDataList()) {
+			for(NodeBlocks dnb : hb.getData().getDataList()) {
 				//Base case
 				if(received.isEmpty() == true) {
 					FileInfo f = new FileInfo(dnb.getFilename());
@@ -402,15 +419,33 @@ public class NameNode implements INameNode{
 		}
 		String line = br.readLine(); //ignore first line
 		line = br.readLine(); //ignore block size
-		line = br.readLine(); 
+		line = br.readLine(); //contains the ip, port, and name
 		String parsedLine[] = line.split(";");
 		//Create new name node
 		nn = new NameNode(parsedLine[1], Integer.parseInt(parsedLine[2]), parsedLine[0]);
 		System.out.println("Created Name Node: \n\t" + parsedLine[0] + ": " + parsedLine[1] + " Port = " + Integer.parseInt(parsedLine[2]));
 		br.close();
 		
-		//TODO probably dont need this since the MD should be reconstructed through blockReports
-		//TODO MD just persists filenames --> let client know that file is unavailable if DN goes down
+		//Get the meta data for the name node
+		//This only gets the list of files and their corresponding blocks
+		//Locations of the blocks will be filled in with heartbeats
+		try {
+			File nnmd = new File("src/NNMD.txt");
+			if(!nnmd.exists()) nnmd.createNewFile();
+			FileInputStream fis = new FileInputStream(nnmd);
+			NodeData readNNMD = NodeData.parseFrom(fis);
+			for(NodeBlocks nb : readNNMD.getDataList()) {
+				FileInfo f = new FileInfo(nb.getFilename());
+				for(Block b : nb.getBlockList()) {
+					f.Chunks.add(b.getBlocknum());
+				}
+				fileList.add(f);
+			}
+			fis.close();
+		}catch(Exception e) {
+			System.out.println("Error!");
+		}
+		
 		
 		//Get data nodes
 		try{

@@ -19,8 +19,8 @@ import java.io.*;
 import java.nio.charset.Charset;
 
 import ds.hdfs.hdfsProto.Block;
-import ds.hdfs.hdfsProto.DataNodeBlocks;
-import ds.hdfs.hdfsProto.DataNodeData;
+import ds.hdfs.hdfsProto.NodeBlocks;
+import ds.hdfs.hdfsProto.NodeData;
 import ds.hdfs.hdfsProto.DataNodeResponse;
 import ds.hdfs.hdfsProto.HeartBeat;
 import ds.hdfs.hdfsProto.NameNodeResponse;
@@ -65,26 +65,23 @@ public class DataNode implements IDataNode
     		return response.build().toByteArray();
     	}
     	int blockNum = requestedBlock.getBlocknum();
-    	String filename = requestedBlock.getFilename();
     	
     	//Open chunk file to read data
     	try {
     		//Deserialize line of data
     		FileInputStream fis = new FileInputStream(this.MyChunksFile);
-			DataNodeData dsData = DataNodeData.parseFrom(fis);
+			NodeData dsData = NodeData.parseFrom(fis);
 			//Look for filename
-			for(DataNodeBlocks dnb : dsData.getDataList()) {
-				if(dnb.getFilename().equals(filename)) {
-					//Find and send requested block
-					for(Block b : dnb.getBlockList()) {
-						if(b.getBlocknum() == blockNum) {
-		    				//Found requested block
-		    				response.setResponse(b.getData());
-		    				response.setStatus(1);
-		    				fis.close();
-		    				return response.build().toByteArray();
-		    			}
-					}
+			for(NodeBlocks dnb : dsData.getDataList()) {
+				//Find and send requested block
+				for(Block b : dnb.getBlockList()) {
+					if(b.getBlocknum() == blockNum) {
+	    				//Found requested block
+	    				response.setResponse(b.getData());
+	    				response.setStatus(1);
+	    				fis.close();
+	    				return response.build().toByteArray();
+	    			}
 				}
 			}
     		fis.close();
@@ -121,10 +118,9 @@ public class DataNode implements IDataNode
     	}
 
     	//Serialize data
-    	DataNodeBlocks.Builder block = DataNodeBlocks.newBuilder();
-    	block.setFilename(blockToWrite.getFilename());
+    	NodeBlocks.Builder block = NodeBlocks.newBuilder();
     	block.addBlock(blockToWrite);
-    	DataNodeData.Builder serializedData = DataNodeData.newBuilder();
+    	NodeData.Builder serializedData = NodeData.newBuilder();
     	serializedData.addData(block);
     	
     	//Write to blockfile
@@ -238,21 +234,20 @@ public class DataNode implements IDataNode
     		        	if(chunkFile.exists() == false) chunkFile.createNewFile();
     		        	if(chunkFile.length() != 0) {
 		    				FileInputStream fis = new FileInputStream(chunkFile);
-		    				DataNodeData storedData = DataNodeData.parseFrom(fis);
+		    				NodeData storedData = NodeData.parseFrom(fis);
 		    				
 		    				//Get the data and serialize it
 		    				HeartBeat.Builder hb = HeartBeat.newBuilder();
 		    				String nodeInfo = dn.MyID + ";" + dn.MyIP + ";" + dn.MyPort;
 		    				hb.setNodeinfo(nodeInfo);
-		    				DataNodeData.Builder fileList = DataNodeData.newBuilder();
+		    				NodeData.Builder fileList = NodeData.newBuilder();
 		    				//Go through each data entry
-		    				for(DataNodeBlocks dnb : storedData.getDataList()) {
-	    						DataNodeBlocks.Builder blocks = DataNodeBlocks.newBuilder();
+		    				for(NodeBlocks dnb : storedData.getDataList()) {
+	    						NodeBlocks.Builder blocks = NodeBlocks.newBuilder();
 	    						blocks.setFilename(dnb.getFilename());
 	    						for(Block b : dnb.getBlockList()) {
 	    							//Recreating the block but without the data
 	    							Block.Builder bs = Block.newBuilder();
-	    							bs.setFilename(b.getFilename());
 	    							bs.setBlocknum(b.getBlocknum());
 	    							blocks.addBlock(bs);
 	    						}
@@ -269,7 +264,7 @@ public class DataNode implements IDataNode
 		    				HeartBeat.Builder hb = HeartBeat.newBuilder();
 		    				String nodeInfo = dn.MyID + ";" + dn.MyIP + ";" + dn.MyPort;
 		    				hb.setNodeinfo(nodeInfo);
-		    				hb.setData(DataNodeData.newBuilder());
+		    				hb.setData(NodeData.newBuilder());
 		    				NameNodeResponse nnr = NameNodeResponse.parseFrom(stub.heartBeat(hb.build().toByteArray()));
 		    				if(nnr.getStatus() == -1) {
 		    					System.out.println("Namenode had an error processing the heartbeat");

@@ -111,7 +111,7 @@ public class Client
         	ClientQuery.Builder cq = ClientQuery.newBuilder();
         	cq.setFilename(f.getName());
 			NameNodeResponse blockLocations = NameNodeResponse.parseFrom(NNStub.getBlockLocations(cq.build().toByteArray()));
-			if(blockLocations.getStatus() == 0) {
+			if(blockLocations.getStatus() == 1) {
 				System.out.println("OK from server...Reading bytes from file");
 				//Keep track of blocks written to file
 				ClientQuery.Builder open = ClientQuery.newBuilder();
@@ -146,7 +146,6 @@ public class Client
 					
 					//Write block to Data Node
 					Block.Builder b = Block.newBuilder();
-					b.setFilename(f.getName());
 					b.setBlocknum(blockNum);
 					b.setData(ByteString.copyFrom(buffer));
 					DataNodeResponse response = DataNodeResponse.parseFrom(DNStub.writeBlock(b.build().toByteArray()));
@@ -229,7 +228,6 @@ public class Client
 	    	for(String blockNum : parsedBL[3].split(",")) {
 	    		//Create a new block and serialize it
 	    		Block.Builder block = Block.newBuilder();
-	    		block.setFilename(Filename);
 	    		block.setBlocknum(Integer.parseInt(blockNum));
 	    		DataNodeResponse data = DataNodeResponse.parseFrom(DNStub.readBlock(block.build().toByteArray()));
 	    		if(data.getStatus() == -1) {
