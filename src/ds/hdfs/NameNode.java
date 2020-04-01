@@ -74,12 +74,14 @@ public class NameNode implements INameNode{
 		String ip;
 		int port;
 		String serverName;
+		ArrayList<Integer> blocks;
 		boolean alive;
 		public DataNode(String addr,int p,String sname)
 		{
 			this.ip = addr;
 			this.port = p;
 			this.serverName = sname;
+			this.blocks = new ArrayList<>();
 			this.alive = false;
 		}
 		
@@ -95,7 +97,6 @@ public class NameNode implements INameNode{
 //		int filehandle;
 //		boolean writemode;
 		ArrayList<Integer> Chunks;
-		ArrayList<DataNode> dataNodes;
 		
 //		public FileInfo(String name, int handle, boolean option)
 		public FileInfo(String name)
@@ -104,7 +105,6 @@ public class NameNode implements INameNode{
 //			filehandle = handle;
 //			writemode = option;
 			this.Chunks = new ArrayList<>();
-			this.dataNodes = new ArrayList<>();
 		}
 	}
 	
@@ -180,23 +180,32 @@ public class NameNode implements INameNode{
 		FileInfo f = findInFilelist(filename);
 		if(f == null) {
 			System.out.println("File does not exist in HDFS!");
-//			response.setResponse(ERROR_MSG); //not necessarily an error
 			response.setStatus(0); //OK if the client wants to PUT file
 			return response.build().toByteArray();
 		}
 		
 		//File exists, can return block locations
 		String blockLocations = "";
+		ArrayList<Integer> blocks = new ArrayList<>();
 		int count = 0;
 		for(Integer i : f.Chunks) {
 			blockLocations = blockLocations.concat(i.toString());
+			blocks.add(i);
 			if(count < f.Chunks.size() - 1) blockLocations = blockLocations.concat(",");
 			count++;
 		}
-		String msg = f.dataNodes.get(0).toString() + ";" + blockLocations; //TODO get real location
-		response.setResponse(ByteString.copyFrom(msg.getBytes()));
-		response.setStatus(1); //OK
-		
+		//Check data nodes
+		for(DataNode d : dataNodes) {
+			if(d.alive == true && d.blocks.containsAll(blocks)) {
+				String msg = d.toString() + ";" + blockLocations; 
+				response.setResponse(ByteString.copyFrom(msg.getBytes()));
+				response.setStatus(1); //OK
+				return response.build().toByteArray();
+			}
+		}
+		System.out.println("DataNode containing " + filename + " is down!");
+		response.setResponse(ERROR_MSG);
+		response.setStatus(-1);
 		return response.build().toByteArray();
 	}
 	
@@ -302,7 +311,7 @@ public class NameNode implements INameNode{
 	}
 	
 	/**
-	 * Receives a filename, the datanode containing it, and the blocks associated with it
+	 * Receives a filename, a block, and the data node it is coming from
 	 */
 	public byte[] heartBeat(byte[] inp ) throws RemoteException
 	{
@@ -312,43 +321,41 @@ public class NameNode implements INameNode{
 			HeartBeat hb = HeartBeat.parseFrom(inp);
 			//id, ip, port
 			String dnInfo[] = hb.getNodeinfo().split(";");
-			System.out.println("Received heartbeat from " + dnInfo[1] + ":" + dnInfo[2]);
+			DataNode d = new DataNode(dnInfo[1], Integer.parseInt(dnInfo[2]), dnInfo[0]);
+			System.out.println("\nReceived heartbeat from " + dnInfo[1] + ":" + dnInfo[2]);
 			//Make a temporary list to hold all blocks
 			ArrayList<FileInfo> received = new ArrayList<>();
 			for(DataNodeBlocks dnb : hb.getData().getDataList()) {
-				//First check if we came across its filename before
-				boolean seen = false;
-				FileInfo temp = null;
-				for(FileInfo f : received) {
-					if(f.filename.equals(dnb.getFilename())) {
-						seen = true;
-						temp = f;
+				//Base case
+				if(received.isEmpty() == true) {
+					FileInfo f = new FileInfo(dnb.getFilename());
+					f.Chunks.add(dnb.getBlock(0).getBlocknum());
+					d.blocks.add(dnb.getBlock(0).getBlocknum());
+					received.add(f);
+				}else {
+					//Check if we already saw the file
+					boolean seen = false;
+					for(FileInfo f : received) {
+						if(f.filename.equals(dnb.getFilename())) {
+							f.Chunks.add(dnb.getBlock(0).getBlocknum());
+							d.blocks.add(dnb.getBlock(0).getBlocknum());
+							seen = true;
+							break;
+						}
 					}
-				}
-				if(seen == true) {
-					for(Block b : dnb.getBlockList()) {
-						temp.Chunks.add(Integer.valueOf(b.getBlocknum()));
+					//Discovered file, add it
+					if(seen == false) {
+						FileInfo f = new FileInfo(dnb.getFilename());
+						f.Chunks.add(dnb.getBlock(0).getBlocknum());
+						d.blocks.add(dnb.getBlock(0).getBlocknum());
+						received.add(f);
 					}
-				}else if(seen == false) {
-					//Construct a new fileinfo object
-					FileInfo fi = new FileInfo(dnb.getFilename());
-					fi.dataNodes.add(new DataNode(dnInfo[1], Integer.valueOf(dnInfo[2]), dnInfo[0]));
-					for(Block b : dnb.getBlockList()) {
-						fi.Chunks.add(Integer.valueOf(b.getBlocknum()));
-					}
-					received.add(fi);
 				}
 			}
-//			System.out.println("Received " + received.size() + " files");
-//			for(FileInfo f : received) {
-//				System.out.print("\t" + f.filename);
-//				for(DataNode d : f.dataNodes) System.out.println("\t" + d.toString());
-//			}
 			
 			//Done reading, update info
 			if(fileList.isEmpty() == true) {
 				for(FileInfo f : received) {
-					System.out.println("adding " + f.filename);
 					fileList.add(f);
 				}
 			}else {
@@ -357,29 +364,43 @@ public class NameNode implements INameNode{
 				//Remove old data
 				while(it.hasNext()) {
 					FileInfo oldFile = it.next();
-//					System.out.println(oldFile.filename);
 					for(FileInfo newFile : received) {
 						if(newFile.filename.equals(oldFile.filename)) {
-//							System.out.println("\tremoving " + oldFile.filename);
 							it.remove();
-//							System.out.println("\tadding " + newFile.filename);
 							toBeAdded.add(newFile);
+							break;
 						}
 					}
 				}
 				//Update
 				for(FileInfo f : toBeAdded) fileList.add(f);
 			}
+			
+			//Update Alive Data Nodes
+			if(dataNodes.isEmpty() == true) {
+				dataNodes.add(d);
+				d.alive = true;
+			}else {
+				Iterator<DataNode> it = dataNodes.iterator();
+				//Remove old node
+				while(it.hasNext()) {
+					DataNode oldNode = it.next();
+					if(d.serverName.equals(oldNode.serverName)) {
+						it.remove();
+						break;
+					}
+				}
+				//Update
+				dataNodes.add(d);
+				d.alive = true;
+			}
 			response.setStatus(1); //OK
 			
-			System.out.println("HeartBeat summary:");
+			System.out.println("\nHeartBeat summary:");
 			System.out.println("--------------------------");
-			for(FileInfo f : fileList) {
-				System.out.println(f.filename);
-				for(DataNode d : f.dataNodes) {
-					System.out.println("\tNode: " + d.toString());
-				}
-				System.out.println("\tBlocks: " + f.Chunks.get(0) + "-" + f.Chunks.get(f.Chunks.size()-1));
+			for(DataNode dn : dataNodes) {
+				System.out.println(d.serverName + " : " + dn.ip + ":" + dn.port);
+				System.out.println("\tBlocks:" + dn.blocks.get(0) + "-" + dn.blocks.get(dn.blocks.size()-1));
 			}
 		} catch (InvalidProtocolBufferException e) {
 			e.printStackTrace();
@@ -460,25 +481,22 @@ public class NameNode implements INameNode{
 			return;
 		}
 		
-//		//Timeout for dead DNs
-//		TimerTask timeoutQuery = new TimerTask() {
-//			@Override
-//			public void run() {
-//				for(DataNode d : dataNodes) {
-//					if(d.alive == false) {
-//						System.out.println(d.serverName + " at " + d.ip + ":" + d.port + " is down");
-//						dataNodes.remove(d);
-//						//Remove node from fileinfo
-//						for(FileInfo f : fileList) {
-//							if(f.dataNodes.contains(d)) {
-//								f.dataNodes.remove(d);
-//							}
-//						}
-//					}
-//				}
-//			}
-//		};
-//		Timer t = new Timer();
-//		t.scheduleAtFixedRate(timeoutQuery, timeout, timeout);
+		//Timeout for dead DNs
+		TimerTask timeoutQuery = new TimerTask() {
+			@Override
+			public void run() {
+				Iterator<DataNode> it = dataNodes.iterator();
+				while(it.hasNext()) {
+					DataNode d = it.next();
+					if(d.alive == false) {
+						System.out.println(d.serverName + " at " + d.ip + ":" + d.port + " has gone down");
+						it.remove();
+					}
+					d.alive = false; //This sets all nodes back to false so they can be queried in heartBeat()
+				}
+			}
+		};
+		Timer t = new Timer();
+		t.scheduleAtFixedRate(timeoutQuery, timeout, timeout);
 	}
 }
