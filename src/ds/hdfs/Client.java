@@ -59,7 +59,7 @@ public class Client
                 IDataNode stub = (IDataNode) registry.lookup(Name);
                 return stub;
             }catch(Exception e){
-            	e.printStackTrace();
+//            	e.printStackTrace();
                 continue;
             }
         }
@@ -108,26 +108,28 @@ public class Client
     	}
     	try {
     		//Ask Name Node to put file
-        	ClientQuery.Builder cq = ClientQuery.newBuilder();
-        	cq.setFilename(f.getName());
-			NameNodeResponse blockLocations = NameNodeResponse.parseFrom(NNStub.getBlockLocations(cq.build().toByteArray()));
-			if(blockLocations.getStatus() == 1) {
+    		ClientQuery.Builder open = ClientQuery.newBuilder();
+			open.setFilename(f.getName());
+			NameNodeResponse openResp = NameNodeResponse.parseFrom(NNStub.openFile(open.build().toByteArray()));
+			//Data nodes could be down
+			if(openResp.getStatus() == -2) {
+				System.out.println("Service unavailable. Cannot put " + Filename);
+				return;
+			}
+			//Might not enough space in HDFS
+			if(openResp.getStatus() != 0 && (f.length() / blockSize) > openResp.getStatus()) {
+				System.out.println("Unable to put " + Filename + " into HDFS, not enough space available");
+				return;
+			}
+			//OK to begin writing to datanodes
+			if(openResp.getStatus() != 0) {
 				System.out.println("OK from server...Reading bytes from file");
-				//Keep track of blocks written to file
-				ClientQuery.Builder open = ClientQuery.newBuilder();
-				open.setFilename(f.getName());
-				NameNodeResponse openResp = NameNodeResponse.parseFrom(NNStub.openFile(open.build().toByteArray()));
-				//Check if there is space in HDFS
-				if((f.length() / blockSize) > openResp.getStatus()) {
-					System.out.println("Unable to put " + Filename + " into HDFS");
-					return;
-				}
 				//Start reading bytes from file
 				BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
 				int bytesRead = 0;
 				byte buffer[] = new byte[(int)blockSize];
 				while( (bytesRead = bis.read(buffer)) > 0) {
-					cq = ClientQuery.newBuilder();
+					ClientQuery.Builder cq = ClientQuery.newBuilder();
 					cq.setFilename(f.getName());
 					//Get block from Name Node
 					NameNodeResponse nameNodeBlockResponse = NameNodeResponse.parseFrom(NNStub.assignBlock(cq.build().toByteArray()));
@@ -162,7 +164,7 @@ public class Client
 				//Have the name node commit meta data to disk
 				ClientQuery.Builder close = ClientQuery.newBuilder();
 				close.setFilename(f.getName());
-				NameNodeResponse closeResp = NameNodeResponse.parseFrom(close.build().toByteArray());
+				NameNodeResponse closeResp = NameNodeResponse.parseFrom(NNStub.closeFile(close.build().toByteArray()));
 				if(closeResp.getStatus() == -1) {
 					System.out.println("Error: Could not put " + Filename + " into HDFS");
 					return;
@@ -205,8 +207,11 @@ public class Client
 	    try {
 	    	//This will return locations of the blocks if the file exists within HDFS
 	    	NameNodeResponse blockLocations = NameNodeResponse.parseFrom(NNStub.getBlockLocations(cq.build().toByteArray()));
-	    	if(blockLocations.getStatus() == 0) {
+	    	if(blockLocations.getStatus() == -1) {
 	    		System.out.println("File does not exist in HDFS!");
+	    		return;
+	    	}else if(blockLocations.getStatus() == 0) {
+	    		System.out.println("Service unavailable. Cannot get " + Filename);
 	    		return;
 	    	}
 	    	//Block locations are returned in the form
@@ -241,18 +246,17 @@ public class Client
 	    	fos.close();
 	    }catch(RemoteException e) {
 	    	System.out.println("Error retrieving file from HDFS: RemoteException");
-	    	e.printStackTrace();
+//	    	e.printStackTrace();
 	    	return;
 	    } catch (InvalidProtocolBufferException e) {
 	    	System.out.println("Error retrieving file from HDFS: InvalidProtocolBufferException");
-			e.printStackTrace();
+//			e.printStackTrace();
 			return;
 		} catch (IOException e) {
-			System.out.println("Error creating file from HDFS: IOException");
-			e.printStackTrace();
+			System.out.println("Error retrieving file from HDFS: IOException");
+//			e.printStackTrace();
 			return;
-		}
-	    
+		} 
     }
 
     /**

@@ -94,7 +94,6 @@ public class NameNode implements INameNode{
 		System.out.println("Looking for " + filename);
 		for(FileInfo file : fileList) {
 			if(file.filename.equals(filename)) {
-				System.out.println(file);
 				return file;
 			}
 		}
@@ -107,7 +106,13 @@ public class NameNode implements INameNode{
 	 */
 	public byte[] openFile(byte[] inp) throws RemoteException
 	{
-		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
+		NameNodeResponse.Builder response = NameNodeResponse.newBuilder();
+		//First check if datanodes are available
+		if(dataNodes.isEmpty() == true) {
+			System.out.println("No available datanodes");
+			response.setStatus(-2); //special case, only used here to denote downed DNs
+			return response.build().toByteArray();
+		}
 		//Deserialize client message
 		ClientQuery query;
 		try {
@@ -125,9 +130,8 @@ public class NameNode implements INameNode{
 		FileInfo f = findInFilelist(filename);
 		if(f == null) {
 			System.out.println("File does not exist in HDFS!");
-			response.setStatus(available); //OK
-			return response.build().toByteArray();
-		}
+			response.setStatus(available); //OK, can add
+		}else response.setStatus(0); //File exists in HDFS, cannot add
 		return response.build().toByteArray();
 	}
 	
@@ -138,11 +142,12 @@ public class NameNode implements INameNode{
 	 */
 	public byte[] closeFile(byte[] inp ) throws RemoteException
 	{
-		DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
+		NameNodeResponse.Builder response = NameNodeResponse.newBuilder();
 		try {
 			//Deserialize client query
 			ClientQuery cq = ClientQuery.parseFrom(inp);
 			NodeData.Builder all = NodeData.newBuilder();
+			FileOutputStream fos = new FileOutputStream("src/NNMD.txt", false);
 			for(FileInfo f : fileList) {
 				NodeBlocks.Builder n = NodeBlocks.newBuilder();
 				n.setFilename(cq.getFilename());
@@ -152,9 +157,8 @@ public class NameNode implements INameNode{
 					n.addBlock(b);
 				}
 				all.addData(n);
+				fos.write(all.build().toByteArray());
 			}
-			FileOutputStream fos = new FileOutputStream("src/NNMD.txt");
-			fos.write(all.build().toByteArray());
 			fos.close();
 			response.setStatus(1);//All data written
 		}catch(Exception e){
@@ -186,26 +190,31 @@ public class NameNode implements INameNode{
 		}
 		//Return requested block locations
 		String filename = query.getFilename();
-		FileInfo f = new FileInfo(filename);
+		FileInfo f = findInFilelist(filename);
 		String blockLocations = "";
 		ArrayList<Integer> blocks = new ArrayList<>();
 		int count = 0;
-		for(Integer i : f.Chunks) {
-			blockLocations = blockLocations.concat(i.toString());
-			blocks.add(i);
-			if(count < f.Chunks.size() - 1) blockLocations = blockLocations.concat(",");
-			count++;
-		}
-		//Check data nodes
-		for(DataNode d : dataNodes) {
-			if(d.alive == true && d.blocks.containsAll(blocks)) {
-				String msg = d.toString() + ";" + blockLocations; 
-				response.setResponse(ByteString.copyFrom(msg.getBytes()));
-				response.setStatus(1); //OK
-				return response.build().toByteArray();
+		if(f != null) {
+			for(Integer i : f.Chunks) {
+				blockLocations = blockLocations.concat(i.toString());
+				blocks.add(i);
+				if(count < f.Chunks.size() - 1) blockLocations = blockLocations.concat(",");
+				count++;
 			}
+			//Check data nodes
+			for(DataNode d : dataNodes) {
+				if(d.alive == true && d.blocks.containsAll(blocks)) {
+					String msg = d.toString() + ";" + blockLocations; 
+					response.setResponse(ByteString.copyFrom(msg.getBytes()));
+					response.setStatus(1); //OK
+					return response.build().toByteArray();
+				}
+			}
+			//No data nodes available to serve client
+			response.setStatus(0);
+			return response.build().toByteArray();
 		}
-		System.out.println("DataNode containing " + filename + " is down!");
+		System.out.println("DataNode containing " + filename + " is unavailable!");
 		response.setStatus(-1);
 		return response.build().toByteArray();
 	}
@@ -229,11 +238,25 @@ public class NameNode implements INameNode{
 			}
 			//Block is available, map it and send it to client
 			String filename = query.getFilename();
-			FileInfo newFile = new FileInfo(filename);
-			//Mark chunk as taken and add it to the file's chunklist
+			Iterator<FileInfo> it = fileList.iterator();
+			boolean seen = false;
+			while(it.hasNext()) {
+				FileInfo f = it.next();
+				//Only adding a block to the existing fileinfo
+				if(f.filename.equals(filename)) {
+					f.Chunks.add(available);
+					seen = true;
+					break;
+				}
+			}
+			//Happens on first block addition
+			if(seen == false) {
+				FileInfo newFile = new FileInfo(filename);
+				newFile.Chunks.add(available);
+				fileList.add(newFile);
+			}
+			//Mark chunk as taken
 			bitset.set(available);
-			newFile.Chunks.add(Integer.valueOf(available));
-			fileList.add(newFile);
 			//Contains the block number to write and the data node holding that block
 			String s = available + ";" + dataNodes.get(0).toString();
 			response.setResponse(ByteString.copyFrom(s.getBytes()));
@@ -445,22 +468,6 @@ public class NameNode implements INameNode{
 		}catch(Exception e) {
 			System.out.println("Error!");
 		}
-		
-		
-		//Get data nodes
-		try{
-			br = new BufferedReader(new FileReader("src/dn_config.txt"));
-		}catch(FileNotFoundException e) {
-			System.out.println("Could not find dn_config.txt");
-			e.printStackTrace();
-			return;
-		}
-        line = br.readLine();
-        while( (line = br.readLine()) != null) {
-        	String parsedLine2[] = line.split(";");
-        	dataNodes.add(new DataNode(parsedLine2[1], Integer.parseInt(parsedLine2[2]), parsedLine2[0]));
-        }
-        br.close();
 		
 		//Enable service
 		System.setProperty("java.rmi.server.hostname" , nn.ip);
