@@ -24,6 +24,7 @@ import ds.hdfs.hdfsProto.ClientQuery;
 import ds.hdfs.hdfsProto.DataNodeBlocks;
 import ds.hdfs.hdfsProto.DataNodeData;
 import ds.hdfs.hdfsProto.DataNodeResponse;
+import ds.hdfs.hdfsProto.HeartBeat;
 import ds.hdfs.hdfsProto.NameNodeData;
 import ds.hdfs.hdfsProto.NameNodeResponse;
 
@@ -39,8 +40,9 @@ public class DataNode implements IDataNode
     private Timer timer;
     
     private static final ByteString ERROR_MSG = ByteString.copyFrom("ERROR".getBytes());
+    private static ArrayList<DataNode> dataNodes = new ArrayList<>(); //List of datanodes, used for replication
     
-    private static int interval = 30; //Measured in seconds. Default 30 seconds
+    private static int interval = 5000; //Measured in milliseconds. Default 5 seconds
 
     public DataNode(int id, String ip, int port)
     {
@@ -240,7 +242,7 @@ public class DataNode implements IDataNode
     		dn.heartBeat = new TimerTask() {
     			@Override
     			public void run() {
-    				System.out.println("Sending heartbeat to " + nn.ip + ":" + nn.port);
+    				System.out.println("Sending heartbeat to " + nn.ip + ":" + nn.port + " from " + dn.MyIP + ":" + dn.MyPort);
     				INameNode stub = GetNNStub(nn.name, nn.ip, nn.port);
     				//Send blocks to Name Node
     				try {
@@ -252,24 +254,26 @@ public class DataNode implements IDataNode
 	    				String nodeInfo = dn.MyID + ";" + dn.MyIP + ";" + dn.MyPort;
 	    				hb.setNodeinfo(nodeInfo);
 	    				DataNodeData.Builder fileList = DataNodeData.newBuilder();
-	    				ArrayList<String> seenFiles = new ArrayList<>();
+//	    				ArrayList<String> seenFiles = new ArrayList<>();
 	    				//Go through each data entry
 	    				for(DataNodeBlocks dnb : storedData.getDataList()) {
-	    					if(!seenFiles.contains(dnb.getFilename())) {
-	    						DataNodeBlocks.Builder blocks = DataNodeBlocks.newBuilder();
-	    						blocks.setFilename(dnb.getFilename());
-	    						for(Block b : dnb.getBlockList()) {
-	    							//Recreating the block but without the data
-	    							Block.Builder bs = Block.newBuilder();
-	    							bs.setFilename(b.getFilename());
-	    							bs.setBlocknum(b.getBlocknum());
-	    							blocks.addBlock(bs);
-	    						}
-	    						fileList.addData(blocks);
-		    					seenFiles.add(dnb.getFilename());
-	    					}
+//	    					System.out.println("At " + dnb.getFilename());
+//	    					if(!seenFiles.contains(dnb.getFilename())) {
+    						DataNodeBlocks.Builder blocks = DataNodeBlocks.newBuilder();
+    						blocks.setFilename(dnb.getFilename());
+    						for(Block b : dnb.getBlockList()) {
+    							//Recreating the block but without the data
+    							Block.Builder bs = Block.newBuilder();
+//	    							System.out.println("adding block " + b.getBlocknum());
+    							bs.setFilename(b.getFilename());
+    							bs.setBlocknum(b.getBlocknum());
+    							blocks.addBlock(bs);
+    						}
+    						fileList.addData(blocks);
+//		    					seenFiles.add(dnb.getFilename());
+//	    					}
 	    				}
-	    				hb.setData(fileList());
+	    				hb.setData(fileList);
 	    				NameNodeResponse nnr = NameNodeResponse.parseFrom(stub.heartBeat(hb.build().toByteArray()));
 	    				if(nnr.getStatus() == -1) {
 	    					System.out.println("Namenode had an error processing the heartbeat");
@@ -282,7 +286,10 @@ public class DataNode implements IDataNode
 					}
     			}
     		};
+    		dn.timer = new Timer();
     		dn.timer.scheduleAtFixedRate(heartBeat, interval, interval);
+    		//Add to list
+    		dataNodes.add(dn);
         }
         br.close();
     }

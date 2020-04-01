@@ -116,8 +116,10 @@ public class Client
 				//Start reading bytes from file
 				BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
 				int bytesRead = 0;
+				boolean write = false;
 				byte buffer[] = new byte[(int)blockSize];
 				while( (bytesRead = bis.read(buffer)) > 0) { //TODO check if file is empty
+					write = true;
 					System.out.println("Read " + bytesRead + " bytes");
 					cq = ClientQuery.newBuilder();
 					cq.setFilename(Filename);
@@ -150,6 +152,11 @@ public class Client
 					}
 					//Make sure buffer is emptied out
 					Arrays.fill(buffer, (byte)0);				
+				}
+				if(write == false) {
+					System.out.println("Cannot put empty file in HDFS");
+					bis.close();
+					return;
 				}
 				System.out.println("Successfully written " + Filename + " to HDFS");
 				bis.close();
