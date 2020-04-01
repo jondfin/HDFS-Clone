@@ -270,8 +270,12 @@ public class NameNode implements INameNode{
 		
 		try{
 			String list = "";
+			//Go through file list
 			for(FileInfo f : fileList) {
-				list = list.concat(f.filename + " ");
+				//Check if node is up and has blocks
+				for(DataNode d : dataNodes) {
+					if(d.alive && d.blocks.containsAll(f.Chunks)) list = list.concat(f.filename + " ");
+				}
 			}
 			response.setResponse(ByteString.copyFrom(list.getBytes()));
 			response.setStatus(1);
