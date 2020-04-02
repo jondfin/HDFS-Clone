@@ -35,6 +35,7 @@ public class Client
 			line = br.readLine(); //Get blocksize
 			blockSize = Long.parseLong(line.split("=")[1].trim());
 			line = br.readLine(); //ignore timeout
+			line = br.readLine(); //ignore replication factor
 			//Get name, ip, and port
 			line = br.readLine();
 			br.close();

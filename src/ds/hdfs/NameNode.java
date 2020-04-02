@@ -36,7 +36,8 @@ public class NameNode implements INameNode{
 	private static ArrayList<DataNode> dataNodes = new ArrayList<>();
 	
 	private static int timeout = 10000;  //Measured in milliseconds. Default 10 seconds
-	
+    private static int replication = 2; //Number of datanodes to replicate to. 
+
 	protected Registry serverRegistry;
 	
 	String ip;
@@ -444,6 +445,8 @@ public class NameNode implements INameNode{
 		line = br.readLine(); //ignore block size
 		line = br.readLine(); //get timeout interval
 		timeout = Integer.parseInt(line.split("=")[1].trim());
+		line = br.readLine(); //get replication factor
+		replication = Integer.parseInt(line.split("=")[1].trim());
 		line = br.readLine();
 		String parsedLine[] = line.split(";"); //read name;ip;port
 		//Create new name node

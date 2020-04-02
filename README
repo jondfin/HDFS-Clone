@@ -26,3 +26,8 @@ Compilation and running instructions:
 	To clear up binaries, Name Node metadata, and Data Node chunkfiles:
 		> make clean
 		
+Working configuration:
+	NameNode @ top.cs.rutgers.edu:6772
+	DataNode @ kill.cs.rutgers.edu:6772
+	DataNode @ cp.cs.rutgers.edu:6772
+	Client @ any iLab machine
