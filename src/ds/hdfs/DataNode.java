@@ -50,51 +50,51 @@ public class DataNode implements IDataNode
      */
     public byte[] readBlock(byte[] inp)
     {
-    	DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
-    	
-    	//Deserialize client message
-    	Block requestedBlock;
-    	try {
-    		requestedBlock = Block.parseFrom(inp);
-    	}catch(InvalidProtocolBufferException e) {
-    		System.out.println("Error parsing client query in readBlock");
-    		e.printStackTrace();
-    		response.setStatus(-1);
-    		return response.build().toByteArray();
-    	}
-    	int blockNum = requestedBlock.getBlocknum();
-    	
-    	//Open chunk file to read data
-    	try {
-    		//Deserialize line of data
-    		FileInputStream fis = new FileInputStream(this.MyChunksFile);
-			NodeData dsData = NodeData.parseFrom(fis);
-			//Look for filename
-			for(NodeBlocks dnb : dsData.getDataList()) {
-				//Find and send requested block
-				for(Block b : dnb.getBlockList()) {
-					if(b.getBlocknum() == blockNum) {
-	    				//Found requested block
-	    				response.setResponse(b.getData());
-	    				response.setStatus(1);
-	    				fis.close();
-	    				return response.build().toByteArray();
-	    			}
+	    	DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
+	    	
+	    	//Deserialize client message
+	    	Block requestedBlock;
+	    	try {
+	    		requestedBlock = Block.parseFrom(inp);
+	    	}catch(InvalidProtocolBufferException e) {
+	    		System.out.println("Error parsing client query in readBlock");
+	    		e.printStackTrace();
+	    		response.setStatus(-1);
+	    		return response.build().toByteArray();
+	    	}
+	    	int blockNum = requestedBlock.getBlocknum();
+	    	
+	    	//Open chunk file to read data
+	    	try {
+	    		//Deserialize line of data
+	    		FileInputStream fis = new FileInputStream(this.MyChunksFile);
+				NodeData dsData = NodeData.parseFrom(fis);
+				//Look for filename
+				for(NodeBlocks dnb : dsData.getDataList()) {
+					//Find and send requested block
+					for(Block b : dnb.getBlockList()) {
+						if(b.getBlocknum() == blockNum) {
+		    				//Found requested block
+		    				response.setResponse(b.getData());
+		    				response.setStatus(1);
+		    				fis.close();
+		    				return response.build().toByteArray();
+		    			}
+					}
 				}
+	    		fis.close();
+	    		System.out.println("Could not find block " + blockNum);
+	    		response.setStatus(-1);
+	            return response.build().toByteArray();
+	    	}catch(FileNotFoundException e) {
+	    		System.out.println("Could not find " + this.MyChunksFile);
+	    		response.setStatus(-1);
+	    		return response.build().toByteArray();
+	    	} catch (IOException e) {
+	    		System.out.println("Could not read block: IOException");
+	    		response.setStatus(-1);
+	    		return response.build().toByteArray();
 			}
-    		fis.close();
-    		System.out.println("Could not find block " + blockNum);
-    		response.setStatus(-1);
-            return response.build().toByteArray();
-    	}catch(FileNotFoundException e) {
-    		System.out.println("Could not find " + this.MyChunksFile);
-    		response.setStatus(-1);
-    		return response.build().toByteArray();
-    	} catch (IOException e) {
-    		System.out.println("Could not read block: IOException");
-    		response.setStatus(-1);
-    		return response.build().toByteArray();
-		}
     }
 
     /**
@@ -102,42 +102,44 @@ public class DataNode implements IDataNode
      */
     public byte[] writeBlock(byte[] inp)
     {
-    	DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
-
-    	//Deserialize client message
-    	Block blockToWrite;
-    	try{
-    		blockToWrite = Block.parseFrom(inp);
-    	}catch(InvalidProtocolBufferException e) {
-    		System.out.println("Error parsing client query in writeBlock");
-    		e.printStackTrace();
-    		response.setStatus(-1);
-    		return response.build().toByteArray();
+    	synchronized(this) {
+	    	DataNodeResponse.Builder response = DataNodeResponse.newBuilder();
+	
+	    	//Deserialize client message
+	    	Block blockToWrite;
+	    	try{
+	    		blockToWrite = Block.parseFrom(inp);
+	    	}catch(InvalidProtocolBufferException e) {
+	    		System.out.println("Error parsing client query in writeBlock");
+	    		e.printStackTrace();
+	    		response.setStatus(-1);
+	    		return response.build().toByteArray();
+	    	}
+	
+	    	//Serialize data
+	    	NodeBlocks.Builder block = NodeBlocks.newBuilder();
+	    	block.addBlock(blockToWrite);
+	    	NodeData.Builder serializedData = NodeData.newBuilder();
+	    	serializedData.addData(block);
+	    	
+	    	//Write to blockfile
+	    	try {
+		    	File f = new File(this.MyChunksFile);
+		    	if(f.exists() == false) f.createNewFile();
+		    	FileOutputStream fos = new FileOutputStream(f, true);
+		    	fos.write(serializedData.build().toByteArray());
+		    	fos.close();
+	    	}catch(Exception e) {
+	    		System.out.println("Error writing file in Data Node");
+	    		e.printStackTrace();
+	    		response.setStatus(-1);
+	    		return response.build().toByteArray();
+	    	}
+	    	
+	    	//Let the client know that bytes were succesfully written
+	    	response.setStatus(1);
+	        return response.build().toByteArray();
     	}
-
-    	//Serialize data
-    	NodeBlocks.Builder block = NodeBlocks.newBuilder();
-    	block.addBlock(blockToWrite);
-    	NodeData.Builder serializedData = NodeData.newBuilder();
-    	serializedData.addData(block);
-    	
-    	//Write to blockfile
-    	try {
-	    	File f = new File(this.MyChunksFile);
-	    	if(f.exists() == false) f.createNewFile();
-	    	FileOutputStream fos = new FileOutputStream(f, true);
-	    	fos.write(serializedData.build().toByteArray());
-	    	fos.close();
-    	}catch(Exception e) {
-    		System.out.println("Error writing file in Data Node");
-    		e.printStackTrace();
-    		response.setStatus(-1);
-    		return response.build().toByteArray();
-    	}
-    	
-    	//Let the client know that bytes were succesfully written
-    	response.setStatus(1);
-        return response.build().toByteArray();
     }
 
 
@@ -146,7 +148,7 @@ public class DataNode implements IDataNode
         try
         {
         	//Create local registry on localhost
-        	LocateRegistry.createRegistry(Port);
+//        	LocateRegistry.createRegistry(Port);
             IDataNode stub = (IDataNode) UnicastRemoteObject.exportObject(this, 0);
             System.setProperty("java.rmi.server.hostname", IP);
             Registry registry = LocateRegistry.getRegistry(Port);
