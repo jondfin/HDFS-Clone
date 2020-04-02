@@ -19,6 +19,7 @@ Compilation and running instructions:
 	To run:
 		> java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.NameNode
 			**Name node needs to be up first**
+			**Name node is ready when you see "{nn.name} is ready"**
 			**Datanode and client should work in any order**
 		> java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.DataNode
 		> java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.Client
