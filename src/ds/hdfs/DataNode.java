@@ -35,8 +35,6 @@ public class DataNode implements IDataNode
     private static TimerTask heartBeat;
     private Timer timer;
     
-    private static ArrayList<DataNode> dataNodes = new ArrayList<>(); //List of datanodes, used for replication
-    
     private static int interval = 5000; //Measured in milliseconds. Default 5 seconds
 
     public DataNode(int id, String ip, int port)
@@ -281,7 +279,6 @@ public class DataNode implements IDataNode
     		dn.timer = new Timer();
     		dn.timer.scheduleAtFixedRate(heartBeat, interval, interval);
     		//Add to list
-    		dataNodes.add(dn);
         }
         br.close();
     }
