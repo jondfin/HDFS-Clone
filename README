@@ -15,13 +15,13 @@ Important:
 			
 Compilation and running instructions:
 	To compile:
-		- run the makefile using "make"
+		> make
 	To run:
-		- java NameNode
+		> java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.NameNode
 			**Name node needs to be up first**
 			**Datanode and client should work in any order**
-		- java DataNode
-		- java Client
+		> java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.DataNode
+		> java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.Client
 	To clear up binaries:
-		- run "make clean"
+		> make clean
 		
