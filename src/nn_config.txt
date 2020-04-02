@@ -1,3 +1,4 @@
-#contains namenode details Name; IP; port
-64
+#contains namenode details Name; IP; port. Blocksize measured in bytes. Timeout measured in milliseconds.
+BLOCKSIZE=64
+TIMEOUT=10000
 NN;192.168.1.41;2004

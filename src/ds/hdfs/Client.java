@@ -20,7 +20,7 @@ import ds.hdfs.hdfsProto.NameNodeResponse;
 
 public class Client
 {
-	private static long blockSize = 64;
+	private static long blockSize = 64; //default 64
 	
     //Variables Required
     public INameNode NNStub; //Name Node stub
@@ -33,7 +33,8 @@ public class Client
 			BufferedReader br = new BufferedReader(new FileReader("src/nn_config.txt"));
 			String line = br.readLine();
 			line = br.readLine(); //Get blocksize
-			blockSize = Long.parseLong(line);
+			blockSize = Long.parseLong(line.split("=")[1]);
+			line = br.readLine(); //ignore timeout
 			//Get name, ip, and port
 			line = br.readLine();
 			br.close();

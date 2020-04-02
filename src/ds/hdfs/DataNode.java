@@ -191,8 +191,9 @@ public class DataNode implements IDataNode
     {
         //Get up name node
 		BufferedReader br = new BufferedReader(new FileReader("src/nn_config.txt"));
-		String line = br.readLine();
+		String line = br.readLine(); //skip first line
 		line = br.readLine(); //skip over block size
+		line = br.readLine(); //skip over timeout
 		line = br.readLine();
 		String parsedLine[] = line.split(";");
 		//Create new name node
@@ -210,7 +211,9 @@ public class DataNode implements IDataNode
         
         //Set up data nodes
         br = new BufferedReader(new FileReader("src/dn_config.txt"));
-        line = br.readLine();
+        line = br.readLine(); //skip first line
+        line = br.readLine(); //read heartbeat timeout interval
+        interval = Integer.parseInt(line.split("=")[1]);
         while( (line = br.readLine()) != null) {
         	String parsedLine2[] = line.split(";");
         	final DataNode dn = new DataNode(Integer.parseInt(parsedLine2[0]), parsedLine2[1], Integer.parseInt(parsedLine2[2]));

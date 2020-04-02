@@ -442,8 +442,10 @@ public class NameNode implements INameNode{
 		}
 		String line = br.readLine(); //ignore first line
 		line = br.readLine(); //ignore block size
-		line = br.readLine(); //contains the ip, port, and name
-		String parsedLine[] = line.split(";");
+		line = br.readLine(); //get timeout interval
+		timeout = Integer.parseInt(line.split("=")[1]);
+		line = br.readLine();
+		String parsedLine[] = line.split(";"); //read name;ip;port
 		//Create new name node
 		nn = new NameNode(parsedLine[1], Integer.parseInt(parsedLine[2]), parsedLine[0]);
 		System.out.println("Created Name Node: \n\t" + parsedLine[0] + ": " + parsedLine[1] + " Port = " + Integer.parseInt(parsedLine[2]));
