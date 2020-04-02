@@ -12,7 +12,8 @@ Important:
 			- Replication factor
 			- Heartbeat interval - measured in milliseconds. How long DNs should wait before sending out hearbeats.
 			- Data node data - name/id;ip;port
-			
+	- If the filesystem is behaving incorrectly (e.g list does not display any files), wait a few seconds before trying again
+		This is similar to the issue mentioned earlier where the Name Node needs a little time to process and update its metadata
 Compilation and running instructions:
 	To compile:
 		> make
