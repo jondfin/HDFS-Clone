@@ -21,14 +21,14 @@ Compilation and running instructions:
 		**Name node needs to be up first**
 		**Name node is ready when you see "{nn.name} is ready"**
 		**Datanode and client should work in any order**
-		> make startNN
-		> make startDN
-		> make startClient
+		> make nn
+		> make dn
+		> make client
 	To clear up binaries, Name Node metadata, and Data Node chunkfiles:
 		> make clean
 		
-Working configuration:
+Working configuration using the ip's already in the config files:
 	NameNode @ top.cs.rutgers.edu:6772
-	DataNode @ kill.cs.rutgers.edu:6772
+	DataNode @ kill.cs.rutgers.edu:3386
 	DataNode @ cp.cs.rutgers.edu:6772
 	Client @ any iLab machine

@@ -203,7 +203,9 @@ public class NameNode implements INameNode{
 				count++;
 			}
 			//Check data nodes
-			for(DataNode d : dataNodes) {
+			Iterator<DataNode> it = dataNodes.iterator();
+			while(it.hasNext()) {
+				DataNode d = it.next();
 				if(d.alive == true && d.blocks.containsAll(blocks)) {
 					String msg = d.toString() + ";" + blockLocations; 
 					response.setResponse(ByteString.copyFrom(msg.getBytes()));
@@ -292,7 +294,9 @@ public class NameNode implements INameNode{
 			while(it.hasNext()) {
 				//Check if node is up and has blocks
 				FileInfo f = it.next();
-				for(DataNode d : dataNodes) {
+				Iterator<DataNode> it2 = dataNodes.iterator();
+				while(it2.hasNext()) {
+					DataNode d = it2.next();
 					if(d.alive && !list.contains(f.filename) && d.blocks.containsAll(f.Chunks)) list.add(f.filename);
 				}
 			}
@@ -422,7 +426,9 @@ public class NameNode implements INameNode{
 			
 			System.out.println("\nHeartBeat summary:");
 			System.out.println("--------------------------");
-			for(DataNode dn : dataNodes) {
+			Iterator<DataNode> it = dataNodes.iterator();
+			while(it.hasNext()) {
+				DataNode dn = it.next();
 				System.out.println(dn.serverName + " : " + dn.ip + ":" + dn.port);
 				if(dn.blocks.isEmpty() == false) System.out.println("\tBlocks:" + dn.blocks.get(0) + "-" + dn.blocks.get(dn.blocks.size()-1));
 			}
