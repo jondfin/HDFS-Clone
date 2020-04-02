@@ -17,12 +17,12 @@ Compilation and running instructions:
 	To compile:
 		> make
 	To run:
-		> java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.NameNode
-			**Name node needs to be up first**
-			**Name node is ready when you see "{nn.name} is ready"**
-			**Datanode and client should work in any order**
-		> java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.DataNode
-		> java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.Client
-	To clear up binaries:
+		**Name node needs to be up first**
+		**Name node is ready when you see "{nn.name} is ready"**
+		**Datanode and client should work in any order**
+		> make startNN
+		> make startDN
+		> make startClient
+	To clear up binaries, Name Node metadata, and Data Node chunkfiles:
 		> make clean
 		
