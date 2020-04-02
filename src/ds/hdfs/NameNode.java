@@ -443,7 +443,7 @@ public class NameNode implements INameNode{
 		String line = br.readLine(); //ignore first line
 		line = br.readLine(); //ignore block size
 		line = br.readLine(); //get timeout interval
-		timeout = Integer.parseInt(line.split("=")[1]);
+		timeout = Integer.parseInt(line.split("=")[1].trim());
 		line = br.readLine();
 		String parsedLine[] = line.split(";"); //read name;ip;port
 		//Create new name node

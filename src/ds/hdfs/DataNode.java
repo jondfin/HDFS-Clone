@@ -36,6 +36,7 @@ public class DataNode implements IDataNode
     private Timer timer;
     
     private static int interval = 5000; //Measured in milliseconds. Default 5 seconds
+    private static int replication = 2; //Number of datanodes to replicate to. 
 
     public DataNode(int id, String ip, int port)
     {
@@ -212,8 +213,10 @@ public class DataNode implements IDataNode
         //Set up data nodes
         br = new BufferedReader(new FileReader("src/dn_config.txt"));
         line = br.readLine(); //skip first line
+        line = br.readLine(); //read replication factor
+        replication = Integer.parseInt(line.split("=")[1].trim());
         line = br.readLine(); //read heartbeat timeout interval
-        interval = Integer.parseInt(line.split("=")[1]);
+        interval = Integer.parseInt(line.split("=")[1].trim());
         while( (line = br.readLine()) != null) {
         	String parsedLine2[] = line.split(";");
         	final DataNode dn = new DataNode(Integer.parseInt(parsedLine2[0]), parsedLine2[1], Integer.parseInt(parsedLine2[2]));

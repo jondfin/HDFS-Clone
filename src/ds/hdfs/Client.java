@@ -33,7 +33,7 @@ public class Client
 			BufferedReader br = new BufferedReader(new FileReader("src/nn_config.txt"));
 			String line = br.readLine();
 			line = br.readLine(); //Get blocksize
-			blockSize = Long.parseLong(line.split("=")[1]);
+			blockSize = Long.parseLong(line.split("=")[1].trim());
 			line = br.readLine(); //ignore timeout
 			//Get name, ip, and port
 			line = br.readLine();

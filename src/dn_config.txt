@@ -1,3 +1,4 @@
-//Each DataNode has this config file: It contains its UniqueIdentifier(Server Name), IP, PORT. Heartbeat measured in milliseconds. 
+//Each DataNode has this config file: It contains its UniqueIdentifier(Server Name), IP, PORT. Heartbeat measured in milliseconds.
+REPLICATION=2
 HEARTBEAT=5000
 1;192.168.1.41;2003

@@ -1,0 +1,27 @@
+Important:
+	- Name Node needs to be up prior to starting data nodes and the client
+	- Upon starting up any datanodes, it will take a while before the client will
+	receive correct responses. This is because the name node needs to update its data
+	when it receives a heartbeat. After a heartbeat is received, HDFS should operate normally.
+	- Configurables:
+		- In nn_config.txt:
+			- Blocksize - measured in bytes
+			- Heartbeat timeout - measured in milliseconds. How long NN should wait before considering DN dead.
+			- Name node data - name;ip;port
+		- In dn_config.txt:
+			- Replication factor
+			- Heartbeat interval - measured in milliseconds. How long DNs should wait before sending out hearbeats.
+			- Data node data - name/id;ip;port
+			
+Compilation and running instructions:
+	To compile:
+		- run the makefile using "make"
+	To run:
+		- java NameNode
+			**Name node needs to be up first**
+			**Datanode and client should work in any order**
+		- java DataNode
+		- java Client
+	To clear up binaries:
+		- run "make clean"
+		
