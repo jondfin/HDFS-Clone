@@ -1,11 +1,11 @@
 all:
 	javac -d bin/ -cp src/com/google/protobuf/protobuf.jar -sourcepath src/ds/hdfs/ src/ds/hdfs/*.java
 
-startNN:
+nn:
 	java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.NameNode
-startDN:
+dn:
 	java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.DataNode
-startClient:
+client:
 	java -cp src/com/google/protobuf/protobuf.jar:bin/ ds.hdfs.Client
 
 clean:
