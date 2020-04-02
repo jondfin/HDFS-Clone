@@ -42,7 +42,7 @@ public class Client
 			String parsedLine[] = line.split(";");
 			//Create new name node
 			NNStub = GetNNStub(parsedLine[0], parsedLine[1], Integer.parseInt(parsedLine[2]));
-			System.out.println("Retrieved Name Node stub");
+//			System.out.println("Retrieved Name Node stub");
 			
 		}catch(Exception e) {
 			System.out.println("Error starting client");
@@ -69,23 +69,14 @@ public class Client
 
     public INameNode GetNNStub(String Name, String IP, int Port)
     {
-    	System.out.println("Name: " + Name);
-    	//TODO temp
-    	try {
-			IP = InetAddress.getLocalHost().getHostAddress();
-		} catch (UnknownHostException e1) {
-//			e1.printStackTrace();
-		}
-    	System.out.println("IP: " + IP);
-    	System.out.println("Port: " + Port);
         while(true)
         {
-        	System.out.println("Looking for " + Name);
+//        	System.out.println("Looking for " + Name);
             try
             {
                 Registry registry = LocateRegistry.getRegistry(IP, Port);
                 INameNode stub = (INameNode) registry.lookup(Name);
-                System.out.println("Found NN");
+//                System.out.println("Found NN");
                 return stub;
             }catch(Exception e){
 //            	e.printStackTrace();
@@ -125,7 +116,7 @@ public class Client
 			}
 			//OK to begin writing to datanodes
 			if(openResp.getStatus() != 0) {
-				System.out.println("OK from server...Reading bytes from file");
+//				System.out.println("OK from server...Reading bytes from file");
 				//Start reading bytes from file
 				BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
 				int bytesRead = 0;
