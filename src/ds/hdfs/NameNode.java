@@ -265,7 +265,11 @@ public class NameNode implements INameNode{
 			//where dn = ip;port;name
 			String s = available + ":";
 			for(int i = 0; i < replication; i++) {
-				s = s.concat(dataNodes.get(i).toString());
+				try{
+					s = s.concat(dataNodes.get(i).toString());
+				}catch(IndexOutOfBoundsException ie) {
+					break;
+				}
 				if(i < replication - 1) s = s.concat(",");
 			}
 			response.setResponse(ByteString.copyFrom(s.getBytes()));
