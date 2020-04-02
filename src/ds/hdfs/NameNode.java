@@ -258,8 +258,14 @@ public class NameNode implements INameNode{
 			}
 			//Mark chunk as taken
 			bitset.set(available);
-			//Contains the block number to write and the data node holding that block
-			String s = available + ";" + dataNodes.get(0).toString();
+			//Contains the block number to write and the data nodes holding that block
+			//written back as block:{dn1},{dn2}
+			//where dn = ip;port;name
+			String s = available + ":";
+			for(int i = 0; i < replication; i++) {
+				s = s.concat(dataNodes.get(i).toString());
+				if(i < replication - 1) s = s.concat(",");
+			}
 			response.setResponse(ByteString.copyFrom(s.getBytes()));
 			response.setStatus(1);
 		} catch (InvalidProtocolBufferException e) {
@@ -417,7 +423,7 @@ public class NameNode implements INameNode{
 			System.out.println("\nHeartBeat summary:");
 			System.out.println("--------------------------");
 			for(DataNode dn : dataNodes) {
-				System.out.println(d.serverName + " : " + dn.ip + ":" + dn.port);
+				System.out.println(dn.serverName + " : " + dn.ip + ":" + dn.port);
 				if(dn.blocks.isEmpty() == false) System.out.println("\tBlocks:" + dn.blocks.get(0) + "-" + dn.blocks.get(dn.blocks.size()-1));
 			}
 		} catch (InvalidProtocolBufferException e) {

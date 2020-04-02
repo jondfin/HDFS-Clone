@@ -106,7 +106,7 @@ public class Client
 			NameNodeResponse openResp = NameNodeResponse.parseFrom(NNStub.openFile(open.build().toByteArray()));
 			//Data nodes could be down
 			if(openResp.getStatus() == -2) {
-				System.out.println("Service unavailable. Cannot put " + Filename);
+				System.out.println("Service unavailable. Cannot put " + Filename + ". Please try again later.");
 				return;
 			}
 			//Might not enough space in HDFS
@@ -132,23 +132,29 @@ public class Client
 						bis.close();
 						return;
 					}
-					//Returns as blocknumber;ip;port;name
-					String blockInfo[] = nameNodeBlockResponse.getResponse().toStringUtf8().split(";");
+					//Name node returns the number of data nodes matching the replication factor
+					//Returns as blocknumber:{ip;port;name},{ip;port;name}
+					String blockInfo[] = nameNodeBlockResponse.getResponse().toStringUtf8().split(":");
 					int blockNum = Integer.parseInt(blockInfo[0]);
-					
-					//Get the data node to send block to
-					DNStub = GetDNStub(blockInfo[3], blockInfo[1], Integer.parseInt(blockInfo[2]));
-					
-					//Write block to Data Node
-					Block.Builder b = Block.newBuilder();
-					b.setBlocknum(blockNum);
-					b.setData(ByteString.copyFrom(buffer));
-					DataNodeResponse response = DataNodeResponse.parseFrom(DNStub.writeBlock(b.build().toByteArray()));
-					if(response.getStatus() == -1) {
-						System.out.println("Error writing blocks to data node...Aborting");
-						System.out.println("Couldn't put file into HDFS");
-						bis.close();
-						return;
+					//Parse out the data nodes
+					String nodes[] = blockInfo[1].split(",");
+					//Write to nodes
+					for(String s : nodes) {
+						String dn[] = s.split(";");
+						//Get the data node to send block to
+						DNStub = GetDNStub(dn[2], dn[0], Integer.parseInt(dn[1]));
+						
+						//Write block to Data Node
+						Block.Builder b = Block.newBuilder();
+						b.setBlocknum(blockNum);
+						b.setData(ByteString.copyFrom(buffer));
+						DataNodeResponse response = DataNodeResponse.parseFrom(DNStub.writeBlock(b.build().toByteArray()));
+						if(response.getStatus() == -1) {
+							System.out.println("Error writing blocks to data node...Aborting");
+							System.out.println("Couldn't put file into HDFS");
+							bis.close();
+							return;
+						}
 					}
 					//Make sure buffer is emptied out
 					Arrays.fill(buffer, (byte)0);				
@@ -204,7 +210,7 @@ public class Client
 	    		System.out.println("File does not exist in HDFS!");
 	    		return;
 	    	}else if(blockLocations.getStatus() == 0) {
-	    		System.out.println("Service unavailable. Cannot get " + Filename);
+	    		System.out.println("Service unavailable. Cannot get " + Filename + ". Please try again later.");
 	    		return;
 	    	}
 	    	//Block locations are returned in the form
