@@ -28,7 +28,7 @@ Compilation and running instructions:
 		> make clean
 		
 Working configuration using the ip's already in the config files:
-	NameNode @ top.cs.rutgers.edu:6772
-	DataNode @ kill.cs.rutgers.edu:3386
-	DataNode @ cp.cs.rutgers.edu:6772
-	Client @ any iLab machine
+	run NameNode on top.cs.rutgers.edu:6000
+	run DataNode on kill.cs.rutgers.edu:5555
+	run DataNode on cp.cs.rutgers.edu:6772
+	run Client on any iLab machine

@@ -153,8 +153,7 @@ public class Client
 						}
 					}
 					//Make sure buffer is emptied out
-//					Arrays.fill(buffer, (byte)0);
-					buffer = new byte[(int)blockSize];
+					Arrays.fill(buffer, (byte)0);
 				}
 				bis.close();
 				//Have the name node commit meta data to disk
