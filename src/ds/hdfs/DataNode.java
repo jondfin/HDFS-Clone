@@ -2,22 +2,14 @@
 package ds.hdfs;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
-import java.rmi.RemoteException;
 import java.rmi.server.ExportException;
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.*;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
-import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.io.*;
-import java.nio.charset.Charset;
 
 import ds.hdfs.hdfsProto.Block;
 import ds.hdfs.hdfsProto.NodeBlocks;
@@ -155,27 +147,18 @@ public class DataNode implements IDataNode
         	LocateRegistry.createRegistry(Port);
             IDataNode stub = (IDataNode) UnicastRemoteObject.exportObject(this, Port);
             Registry registry = LocateRegistry.getRegistry(IP, Port);
-//            System.out.println(registry);
             boolean found = false;
             while(!found) {
             	try{
             		registry.rebind(Name, stub);
             		found = true;
             	}catch(Exception r) {
-//            		System.err.println("Couldn't connect to rmiregistry");
-//            		System.err.println("Attempting connection again...");
-//            		r.printStackTrace();
-//    				TimeUnit.SECONDS.sleep(1);
-            		r.printStackTrace();
             		throw new ConnectException(IP+":"+Port);
             	}
             }
             System.out.println("Bound " + IP + ":" + Port + " to RMIregistry\n");
         }catch(Exception e){
-        	e.printStackTrace();
         	throw new ExportException(IP+":"+Port);
-//            System.err.println("Server Exception: " + e.toString());
-//            e.printStackTrace();
         }
     }
     
@@ -213,7 +196,6 @@ public class DataNode implements IDataNode
 		br.close();
 		
 		//Enable services
-//		System.setProperty("java.rmi.server.hostname" , "localhost");
 		System.setProperty("java.security.policy","src/permission.policy");
 
         if (System.getSecurityManager() == null) {

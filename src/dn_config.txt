@@ -1,5 +1,5 @@
 //Each DataNode has this config file: It contains its UniqueIdentifier(Server Name), IP, PORT. Heartbeat measured in milliseconds.
 REPLICATION=2
 HEARTBEAT=5000
-1;192.168.1.41;2003
-2;192.187.1.42;5544
+1;kill.cs.rutgers.edu;5555
+2;cp.cs.rutgers.edu;6772
