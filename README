@@ -14,6 +14,14 @@ Important:
 			- Data node data - name/id;ip;port
 	- If the filesystem is behaving incorrectly (e.g list does not display any files), wait a few seconds before trying again
 		This is similar to the issue mentioned earlier where the Name Node needs a little time to process and update its metadata
+
+***VERY IMPORTANT***
+In order for the file system to run correctly, the Data Nodes MUST be ran on the listed machines
+For example, as listed below, executing
+    >make dn
+on any server other than kill.cs.rutgers.edu or cp.cs.rutgers.edu will not start up the data nodes.
+The data nodes are configurable, but running them on the iLab machines require the specified machines in dn_config.txt
+
 Compilation and running instructions:
 	To compile:
 		> make
