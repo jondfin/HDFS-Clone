@@ -3,6 +3,7 @@ package ds.hdfs;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
+import java.rmi.server.ExportException;
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.*;
 import java.util.*;
@@ -143,31 +144,38 @@ public class DataNode implements IDataNode
     }
 
 
-    public void BindServer(String Name, String IP, int Port)
+    public void BindServer(String Name, String IP, int Port) throws ConnectException, ExportException
     {
         try
         {
+        	System.out.println("Binding " + IP + ":" + Port);
+        	
+        	System.setProperty("java.rmi.server.hostname", IP);
         	//Create local registry on localhost
-//        	LocateRegistry.createRegistry(Port);
-            IDataNode stub = (IDataNode) UnicastRemoteObject.exportObject(this, 0);
-            System.setProperty("java.rmi.server.hostname", IP);
-            Registry registry = LocateRegistry.getRegistry(Port);
-            System.out.println(registry);
+        	LocateRegistry.createRegistry(Port);
+            IDataNode stub = (IDataNode) UnicastRemoteObject.exportObject(this, Port);
+            Registry registry = LocateRegistry.getRegistry(IP, Port);
+//            System.out.println(registry);
             boolean found = false;
             while(!found) {
             	try{
             		registry.rebind(Name, stub);
             		found = true;
             	}catch(Exception r) {
-            		System.err.println("Couldn't connect to rmiregistry");
-            		System.err.println("Attempting connection again...");
-    				TimeUnit.SECONDS.sleep(1);
+//            		System.err.println("Couldn't connect to rmiregistry");
+//            		System.err.println("Attempting connection again...");
+//            		r.printStackTrace();
+//    				TimeUnit.SECONDS.sleep(1);
+            		r.printStackTrace();
+            		throw new ConnectException(IP+":"+Port);
             	}
             }
-            System.out.println("\nDataNode connected to RMIregistry\n");
+            System.out.println("Bound " + IP + ":" + Port + " to RMIregistry\n");
         }catch(Exception e){
-            System.err.println("Server Exception: " + e.toString());
-            e.printStackTrace();
+        	e.printStackTrace();
+        	throw new ExportException(IP+":"+Port);
+//            System.err.println("Server Exception: " + e.toString());
+//            e.printStackTrace();
         }
     }
     
@@ -218,75 +226,84 @@ public class DataNode implements IDataNode
         line = br.readLine(); //skip first line
         line = br.readLine(); //read heartbeat timeout interval
         interval = Integer.parseInt(line.split("=")[1].trim());
+        boolean bound = false;
         while( (line = br.readLine()) != null) {
         	String parsedLine2[] = line.split(";");
-        	final DataNode dn = new DataNode(Integer.parseInt(parsedLine2[0]), parsedLine2[1], Integer.parseInt(parsedLine2[2]));
-        	//Get chunk file
-        	File chunkFile = new File(dn.MyChunksFile);
-        	if(chunkFile.exists() == false) chunkFile.createNewFile();
+        	DataNode dn = new DataNode(Integer.parseInt(parsedLine2[0]), parsedLine2[1], Integer.parseInt(parsedLine2[2]));
         	//Bind to data nodes to server
-    		dn.BindServer(String.valueOf(dn.MyID), dn.MyIP, dn.MyPort);
-    		//Schedule heartbeats
-    		dn.heartBeat = new TimerTask() {
-    			@Override
-    			public void run() {
-    				System.out.println("Sending heartbeat to " + nn.ip + ":" + nn.port + " from " + dn.MyIP + ":" + dn.MyPort);
-    				INameNode stub = GetNNStub(nn.name, nn.ip, nn.port);
-    				//Send blocks to Name Node
-    				try {
-    					//Get chunk file
-    		        	File chunkFile = new File(dn.MyChunksFile);
-    		        	if(chunkFile.exists() == false) chunkFile.createNewFile();
-    		        	if(chunkFile.length() != 0) {
-		    				FileInputStream fis = new FileInputStream(chunkFile);
-		    				NodeData storedData = NodeData.parseFrom(fis);
-		    				
-		    				//Get the data and serialize it
-		    				HeartBeat.Builder hb = HeartBeat.newBuilder();
-		    				String nodeInfo = dn.MyID + ";" + dn.MyIP + ";" + dn.MyPort;
-		    				hb.setNodeinfo(nodeInfo);
-		    				NodeData.Builder fileList = NodeData.newBuilder();
-		    				//Go through each data entry
-		    				for(NodeBlocks dnb : storedData.getDataList()) {
-	    						NodeBlocks.Builder blocks = NodeBlocks.newBuilder();
-	    						blocks.setFilename(dnb.getFilename());
-	    						for(Block b : dnb.getBlockList()) {
-	    							//Recreating the block but without the data
-	    							Block.Builder bs = Block.newBuilder();
-	    							bs.setBlocknum(b.getBlocknum());
-	    							blocks.addBlock(bs);
-	    						}
-	    						fileList.addData(blocks);
-		    				}
-		    				fis.close();
-		    				hb.setData(fileList);
-		    				NameNodeResponse nnr = NameNodeResponse.parseFrom(stub.heartBeat(hb.build().toByteArray()));
-		    				if(nnr.getStatus() == -1) {
-		    					System.out.println("Namenode had an error processing the heartbeat");
-		    					return;
-		    				}
-    		        	}else {
-		    				HeartBeat.Builder hb = HeartBeat.newBuilder();
-		    				String nodeInfo = dn.MyID + ";" + dn.MyIP + ";" + dn.MyPort;
-		    				hb.setNodeinfo(nodeInfo);
-		    				hb.setData(NodeData.newBuilder());
-		    				NameNodeResponse nnr = NameNodeResponse.parseFrom(stub.heartBeat(hb.build().toByteArray()));
-		    				if(nnr.getStatus() == -1) {
-		    					System.out.println("Namenode had an error processing the heartbeat");
-		    					return;
-		    				}
-    		        	}
-    				}catch(FileNotFoundException e) {
-    					e.printStackTrace();
-    				} catch (IOException e) {
-						e.printStackTrace();
-					}
-    			}
-    		};
-    		dn.timer = new Timer();
-    		dn.timer.scheduleAtFixedRate(heartBeat, interval, interval);
-    		//Add to list
+    		try{
+    			dn.BindServer(String.valueOf(dn.MyID), dn.MyIP, dn.MyPort);
+    			//Get chunk file
+            	File chunkFile = new File(dn.MyChunksFile);
+            	if(chunkFile.exists() == false) chunkFile.createNewFile();
+        		//Schedule heartbeats
+        		dn.heartBeat = new TimerTask() {
+        			@Override
+        			public void run() {
+        				System.out.println("Sending heartbeat to " + nn.ip + ":" + nn.port + " from " + dn.MyIP + ":" + dn.MyPort);
+        				INameNode stub = GetNNStub(nn.name, nn.ip, nn.port);
+        				//Send blocks to Name Node
+        				try {
+        					//Get chunk file
+        		        	File chunkFile = new File(dn.MyChunksFile);
+        		        	if(chunkFile.exists() == false) chunkFile.createNewFile();
+        		        	if(chunkFile.length() != 0) {
+    		    				FileInputStream fis = new FileInputStream(chunkFile);
+    		    				NodeData storedData = NodeData.parseFrom(fis);
+    		    				
+    		    				//Get the data and serialize it
+    		    				HeartBeat.Builder hb = HeartBeat.newBuilder();
+    		    				String nodeInfo = dn.MyID + ";" + dn.MyIP + ";" + dn.MyPort;
+    		    				hb.setNodeinfo(nodeInfo);
+    		    				NodeData.Builder fileList = NodeData.newBuilder();
+    		    				//Go through each data entry
+    		    				for(NodeBlocks dnb : storedData.getDataList()) {
+    	    						NodeBlocks.Builder blocks = NodeBlocks.newBuilder();
+    	    						blocks.setFilename(dnb.getFilename());
+    	    						for(Block b : dnb.getBlockList()) {
+    	    							//Recreating the block but without the data
+    	    							Block.Builder bs = Block.newBuilder();
+    	    							bs.setBlocknum(b.getBlocknum());
+    	    							blocks.addBlock(bs);
+    	    						}
+    	    						fileList.addData(blocks);
+    		    				}
+    		    				fis.close();
+    		    				hb.setData(fileList);
+    		    				NameNodeResponse nnr = NameNodeResponse.parseFrom(stub.heartBeat(hb.build().toByteArray()));
+    		    				if(nnr.getStatus() == -1) {
+    		    					System.out.println("Namenode had an error processing the heartbeat");
+    		    					return;
+    		    				}
+        		        	}else {
+    		    				HeartBeat.Builder hb = HeartBeat.newBuilder();
+    		    				String nodeInfo = dn.MyID + ";" + dn.MyIP + ";" + dn.MyPort;
+    		    				hb.setNodeinfo(nodeInfo);
+    		    				hb.setData(NodeData.newBuilder());
+    		    				NameNodeResponse nnr = NameNodeResponse.parseFrom(stub.heartBeat(hb.build().toByteArray()));
+    		    				if(nnr.getStatus() == -1) {
+    		    					System.out.println("Namenode had an error processing the heartbeat");
+    		    					return;
+    		    				}
+        		        	}
+        				}catch(FileNotFoundException e) {
+        					e.printStackTrace();
+        				} catch (IOException e) {
+    						e.printStackTrace();
+    					}
+        			}
+        		};
+        		dn.timer = new Timer();
+        		dn.timer.scheduleAtFixedRate(heartBeat, interval, interval);
+        		bound = true;
+        		break;
+    		}catch(ConnectException | ExportException e) {
+    			e.printStackTrace();
+    			//Try again until succesful connection
+    			//Limit 1 RMI registry per JVM instance
+    		}
         }
+        if(bound == false) System.out.println("Failed to bind!");
         br.close();
     }
 }

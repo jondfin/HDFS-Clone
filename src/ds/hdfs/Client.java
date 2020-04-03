@@ -56,16 +56,14 @@ public class Client
     {
         while(true)
         {
-        	System.out.println("Looking for " + Name + " at " + IP + ":" + Port);
+//        	System.out.println("Looking for " + Name + " at " + IP + ":" + Port);
             try{
                 Registry registry = LocateRegistry.getRegistry(IP, Port);
-                System.out.println("asdasd");
                 IDataNode stub = (IDataNode) registry.lookup(Name);
-                System.out.println("aqwdaqqqqqq");
                 return stub;
             }catch(Exception e){
-            	System.out.println("Unable to connect, trying again...");
-//            	e.printStackTrace();
+//            	System.out.println("Unable to connect, trying again...");
+            	e.printStackTrace();
                 continue;
             }
         }
@@ -144,11 +142,9 @@ public class Client
 					String nodes[] = blockInfo[1].split(",");
 					//Write to nodes
 					for(String s : nodes) {
-						System.out.println("Writing to " + s);
 						String dn[] = s.split(";");
 						//Get the data node to send block to
 						DNStub = GetDNStub(dn[2], dn[0], Integer.parseInt(dn[1]));
-						System.out.println("got stub");
 						//Write block to Data Node
 						Block.Builder b = Block.newBuilder();
 						b.setBlocknum(blockNum);
@@ -160,7 +156,6 @@ public class Client
 							bis.close();
 							return;
 						}
-						System.out.println("done writing " + b.getBlocknum());
 					}
 					//Make sure buffer is emptied out
 					Arrays.fill(buffer, (byte)0);				

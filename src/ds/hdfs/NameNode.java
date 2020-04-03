@@ -516,7 +516,7 @@ public class NameNode implements INameNode{
 			//Create name node stub
 			INameNode stub = (INameNode) UnicastRemoteObject.exportObject(nn, 0);
 			//Create registry on localhost
-//			LocateRegistry.createRegistry(nn.port);
+			LocateRegistry.createRegistry(nn.port);
 			//Get registry reference
 //			nn.serverRegistry = LocateRegistry.getRegistry(nn.ip, nn.port);
 			nn.serverRegistry = LocateRegistry.getRegistry(nn.port);
